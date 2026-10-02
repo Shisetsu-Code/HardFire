@@ -1,7 +1,8 @@
 {
   "name": "hardfire",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Control the local HardFire browser through its callable HTTPS MCP, with localhost MCP retained for direct local clients.",
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json"
 }

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hardfire",
-  "version": "1.4.0",
-  "description": "Operate the local HardFire browser through its callable HTTPS MCP while retaining a localhost MCP for direct local clients.",
+  "version": "1.4.1",
+  "description": "Operate HardFire on the user's PC, using the existing callable Firetrace app as a compatibility transport and retaining HardFire's local MCP.",
   "author": {
     "name": "Shisetsu-Code",
     "url": "https://github.com/Shisetsu-Code"
@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "HardFire",
         "shortDescription": "Control remoto de HardFire",
-        "longDescription": "Controla HardFire en tu PC mediante su MCP HTTPS callable: navegación, clics, capturas, HAR completo y tráfico HTTP/WebSocket. HardFire mantiene una conexión WSS saliente; no expone puertos de tu PC.",
+        "longDescription": "Controla HardFire en tu PC. Para acciones callable compatibles usa la App Firetrace existente como transporte; HardFire sigue siendo el navegador/ejecutor local y conserva su MCP local.",
         "developerName": "Shisetsu-Code",
         "category": "Developer Tools",
         "capabilities": [
@@ -34,7 +34,8 @@
           "Usa HardFire para revisar la pestaña local actual.",
           "Usa HardFire para grabar y guardar el HAR de las próximas tiradas."
         ]
-      }
+      },
+      "apps": "./.app.json"
     }
   }
 }

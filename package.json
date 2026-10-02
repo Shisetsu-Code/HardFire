@@ -1,8 +1,8 @@
 {
   "name": "hardfire",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
-  "description": "HardFire Electron/CDP browser with local MCP and callable remote ChatGPT MCP integration",
+  "description": "HardFire Electron/CDP browser with local MCP and callable ChatGPT compatibility via the existing Firetrace app",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
