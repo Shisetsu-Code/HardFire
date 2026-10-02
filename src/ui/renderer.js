@@ -129,7 +129,7 @@ function render() {
     }
   } else if (tab.kind === 'mcp') {
     statsEl.textContent = 'MCP';
-    setStatus('Local + Cloudflare control');
+    setStatus('Local MCP control');
   } else {
     statsEl.textContent = 'IMPORT';
     setStatus('Target queue');
