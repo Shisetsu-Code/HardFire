@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hardfire",
-  "version": "1.3.2",
-  "description": "Operate the local HardFire browser and inspect HTTP, HAR and WebSocket traffic.",
+  "version": "1.4.0",
+  "description": "Operate the local HardFire browser through its callable HTTPS MCP while retaining a localhost MCP for direct local clients.",
   "author": {
     "name": "Shisetsu-Code",
     "url": "https://github.com/Shisetsu-Code"
@@ -21,8 +21,8 @@
     "com.openai": {
       "interface": {
         "displayName": "HardFire",
-        "shortDescription": "Control local de HardFire",
-        "longDescription": "Usa HardFire en tu PC para navegar, hacer clics, tomar capturas, iniciar y guardar HAR completos y analizar tráfico HTTP y WebSocket.",
+        "shortDescription": "Control remoto de HardFire",
+        "longDescription": "Controla HardFire en tu PC mediante su MCP HTTPS callable: navegación, clics, capturas, HAR completo y tráfico HTTP/WebSocket. HardFire mantiene una conexión WSS saliente; no expone puertos de tu PC.",
         "developerName": "Shisetsu-Code",
         "category": "Developer Tools",
         "capabilities": [
