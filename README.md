@@ -205,3 +205,36 @@ test/
 ## Safety
 
 Use HardFire only on systems and services you are authorized to test or automate.
+
+
+## HardFire ChatGPT plugin
+
+HardFire also ships as a local desktop plugin under `plugin/HardFire/`.
+
+The plugin includes:
+
+- the local HardFire MCP at `http://127.0.0.1:8765/mcp`
+- a routing skill that tells ChatGPT to prefer HardFire for local-browser, HAR, network and WebSocket tasks
+- namespaced tools such as `hardfire_status`, `hardfire_screenshot` and `hardfire_trigger_and_capture`
+- both the portable Agent Plugins manifest and the compatibility Codex manifest
+
+Build an uploadable ZIP on Windows:
+
+```powershell
+cd C:\HardFire
+npm run plugin:zip
+```
+
+Output:
+
+```text
+C:\HardFire\dist\HardFire-Plugin.zip
+```
+
+After importing/installing the plugin in ChatGPT Desktop, call it with:
+
+```text
+@HardFire revisa la pestaña actual y captura el tráfico de la próxima tirada.
+```
+
+The skill instructs ChatGPT to use HardFire instead of Firetrace, Playwright, cloud browser tools or unrelated browser integrations when HardFire is intended.
