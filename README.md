@@ -16,7 +16,13 @@ HardFire
 Electron / CDP / HAR / WebSocket
 ```
 
-HardFire does not use Firetrace as a transport and does not require a Cloudflare worker for local Desktop use.
+The localhost MCP works with a local execution host and does not require Cloudflare. Chat normal has a separate integration: the existing Firetrace connection can expose HardFire Electron tools through its authenticated relay. Installing a local plugin alone does not make localhost tools available in Chat normal.
+
+## Guía de Electron y Chat normal
+
+Consulta [la guía en español](docs/electron-firetrace-chat-normal.md) para configurar y comprobar la conexión Firetrace → HardFire Electron, seleccionar ventana visible u oculta, manejar pestañas, capturar HTTP/WebSocket, guardar HAR y reducir las esperas entre acciones.
+
+**Estado de versiones:** esta rama contiene HardFire 1.4.2. La guía describe también las capacidades comprobadas en la instalación local 1.5.1 y el servidor Firetrace 2.1.0. Publicar esta documentación no actualiza el código de esta rama ni instala esas versiones. Consulta `tools/list` para saber qué herramientas expone tu conexión.
 
 ## Run locally
 
@@ -71,7 +77,7 @@ Build the plugin ZIP:
 npm run plugin:zip
 ```
 
-Use it locally as `@HardFire` after installing the local marketplace/plugin in ChatGPT Desktop.
+Use it as `@HardFire` in a host that executes local MCP tools after installing the local marketplace/plugin. For Chat normal through the existing Firetrace connection, see [the integration guide](docs/electron-firetrace-chat-normal.md).
 
 ## Browser features
 
