@@ -28,7 +28,17 @@
       <button id="copyConfig">COPY CONFIG</button>
 
       <p class="hint">
-        HardFire is local-only. No Cloudflare worker, remote agent, OAuth, or bearer token is required.
+        This localhost endpoint remains available for GPT Worker and direct local MCP clients.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Remote ChatGPT MCP</h2>
+      <div class="row"><span>Cloudflare WSS</span><strong id="remoteStatus">Checking…</strong></div>
+      <div class="row"><span>Agent</span><code id="agent">hardfire</code></div>
+      <div class="row"><span>Control URL</span><code id="remoteUrl">—</code></div>
+      <p class="hint">
+        The ChatGPT plugin uses the HTTPS HardFire MCP; this app keeps an outbound WSS connection to the control plane.
       </p>
     </section>
 
