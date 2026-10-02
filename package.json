@@ -1,13 +1,13 @@
 {
   "name": "hardfire",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "private": true,
-  "description": "Local HardFire Electron/CDP browser with local MCP and ChatGPT plugin integration",
+  "description": "HardFire Electron/CDP browser with local MCP and callable remote ChatGPT MCP integration",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "check": "node --check src/main.js && node --check src/hardfire-controller.js && node --check src/local-mcp.js && node --check src/redact.js && node --check src/update-manager.js && node --check src/har-archive.js && node --check src/har-recorder.js && node --check src/network-tap.js && node --check src/runtime-patch.js && node --check src/runtime-controller.js && node --check src/target-import.js && node --check src/preload.js && node --check src/tab-preload.js && node --check src/import-preload.js && node --check src/mcp-preload.js && node --check src/ui/renderer.js && node --check src/import/renderer.js && node --check src/mcp/renderer.js && node --test test/*.test.js",
+    "check": "node --check src/main.js && node --check src/hardfire-controller.js && node --check src/remote-agent.js && node --check src/local-mcp.js && node --check src/redact.js && node --check src/update-manager.js && node --check src/har-archive.js && node --check src/har-recorder.js && node --check src/network-tap.js && node --check src/runtime-patch.js && node --check src/runtime-controller.js && node --check src/target-import.js && node --check src/preload.js && node --check src/tab-preload.js && node --check src/import-preload.js && node --check src/mcp-preload.js && node --check src/ui/renderer.js && node --check src/import/renderer.js && node --check src/mcp/renderer.js && node --test test/*.test.js",
     "dist:win": "electron-builder --win nsis",
     "release:win": "electron-builder --win nsis --publish always",
     "plugin:zip": "powershell -ExecutionPolicy Bypass -File scripts/build-plugin.ps1"
@@ -15,7 +15,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.31.0",
     "electron-updater": "^6.6.2",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "electron": "^44.4.0",
