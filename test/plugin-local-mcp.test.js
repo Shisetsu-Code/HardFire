@@ -5,19 +5,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const pluginRoot = path.join(__dirname, '..', 'plugin', 'HardFire');
+const root = path.join(__dirname, '..');
+const pluginRoot = path.join(root, 'plugin', 'HardFire');
 
-test('desktop plugin connects directly to the local HardFire HTTP MCP', () => {
+test('ChatGPT plugin uses the callable HTTPS MCP while localhost MCP remains in the app', () => {
   const portable = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'mcp.json'), 'utf8'));
   const compat = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.mcp.json'), 'utf8'));
 
-  assert.deepEqual(portable.mcpServers.hardfire, {
+  const expected = {
     type: 'streamable-http',
-    url: 'http://127.0.0.1:8765/mcp'
-  });
+    url: 'https://hardfire-mcp.braian-n-l.workers.dev/mcp'
+  };
 
-  assert.deepEqual(compat.mcpServers.hardfire, {
-    type: 'streamable-http',
-    url: 'http://127.0.0.1:8765/mcp'
-  });
+  assert.deepEqual(portable.mcpServers.hardfire, expected);
+  assert.deepEqual(compat.mcpServers.hardfire, expected);
+
+  const localSource = fs.readFileSync(path.join(root, 'src', 'local-mcp.js'), 'utf8');
+  assert.match(localSource, /127\.0\.0\.1/);
+  assert.match(localSource, /8765/);
 });
