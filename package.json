@@ -1,6 +1,6 @@
 {
   "name": "hardfire",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "private": true,
   "description": "Local HardFire Electron/CDP browser with localhost MCP and ChatGPT Desktop plugin integration",
   "main": "src/main.js",
@@ -12,12 +12,16 @@
     "release:win": "electron-builder --win nsis --publish always",
     "plugin:zip": "powershell -ExecutionPolicy Bypass -File scripts/build-plugin.ps1",
     "plugin:tools": "node scripts/export-plugin-tools.js",
-    "start:headless": "electron . --hardfire-hidden"
+    "start:headless": "electron . --hardfire-hidden",
+    "chatgpt:agent": "node scripts/hardfire-chatgpt-agent.cjs",
+    "chatgpt:tools": "node scripts/export-chatgpt-tools.js",
+    "check:chatgpt": "node --check src/chatgpt/local-client.js && node --check src/chatgpt/control-protocol.js && node --check src/chatgpt/relay-agent.js && node --check scripts/hardfire-chatgpt-agent.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.31.0",
     "electron-updater": "^6.6.2",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "ws": "8.21.0"
   },
   "devDependencies": {
     "electron": "^44.4.0",
