@@ -2,12 +2,8 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
     "hardfire": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "./mcp/bridge.cjs"
-      ],
-      "cwd": "${PLUGIN_ROOT}"
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:8765/mcp"
     }
   }
 }
