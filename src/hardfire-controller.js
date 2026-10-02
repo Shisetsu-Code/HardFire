@@ -2,6 +2,7 @@
 
 const { HarRecorder } = require('./har-recorder');
 const { headersArrayToObject } = require('./redact');
+const { isBrowserVisible, setBrowserMode } = require('./browser-window-mode');
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,6 +57,7 @@ class HardFireController {
     this.networkTap = options.networkTap;
     this.startRecordingCallback = options.startRecording;
     this.saveRecordingCallback = options.saveRecording;
+    this.getBrowserWindow = options.getBrowserWindow;
     this.lastCapture = [];
   }
 
@@ -97,6 +99,7 @@ class HardFireController {
     try { bounds = tab.view.getBounds(); } catch {}
     return {
       backend: 'hard-browser-electron-cdp',
+      visible: this.getBrowserWindow ? isBrowserVisible(this.getBrowserWindow()) : null,
       connected: true,
       tab_id: tab.id,
       url: wc.getURL() || tab.url || 'about:blank',
@@ -107,6 +110,11 @@ class HardFireController {
       muted: Boolean(tab.muted),
       ws: tab.recorder?.getStats?.().wsFrames || 0
     };
+  }
+
+  async browser(mode) {
+    const state = setBrowserMode(this.getBrowserWindow?.(), mode);
+    return { ...(await this.status()), ...state };
   }
 
   async open(url) {

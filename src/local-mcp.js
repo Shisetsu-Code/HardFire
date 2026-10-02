@@ -50,6 +50,10 @@ async function createProtocolServer(controller) {
   register('hardfire_status', 'Use HardFire only: read the active local HardFire browser tab, URL, title, viewport, recording state and WebSocket counters.', {}, true,
     async () => text(await controller.status()));
 
+  register('hardfire_browser', 'Start HardFire if needed, then show or hide its browser window without closing tabs or losing the session. Hidden mode keeps browser automation active without a visible window.', {
+    mode: z.enum(['visible', 'hidden'])
+  }, false, async ({ mode }) => text(await controller.browser(mode)));
+
   register('hardfire_open', 'Use HardFire only: open an HTTP or HTTPS URL in the active local HardFire browser tab.', {
     url: z.string().url()
   }, false, async ({ url }) => text(await controller.open(url)));

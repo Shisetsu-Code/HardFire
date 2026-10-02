@@ -23,6 +23,7 @@ const { HarArchiveManager } = require('./har-archive');
 const { configureAutoUpdater } = require('./update-manager');
 const { HardFireController } = require('./hardfire-controller');
 const { startLocalMcp } = require('./local-mcp');
+const { setBrowserMode } = require('./browser-window-mode');
 
 const TOOLBAR_HEIGHT = 68;
 const PARTITION = 'persist:hardfire';
@@ -58,6 +59,13 @@ let localMcp = null;
 
 const tabs = new Map();
 const smokeTest = process.argv.includes('--smoke-test');
+const headless = process.argv.includes('--hardfire-hidden');
+
+const ownsInstance = app.requestSingleInstanceLock();
+if (!ownsInstance) app.quit();
+app.on('second-instance', (_event, argv) => {
+  if (!argv.includes('--hardfire-hidden') && mainWindow) setBrowserMode(mainWindow, 'visible');
+});
 
 const importQueue = {
   targets: [],
@@ -1805,6 +1813,7 @@ function registerIpc() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    show: !headless,
     width: 1500,
     height: 920,
     minWidth: 900,
@@ -1824,20 +1833,13 @@ function createWindow() {
   });
 
   mainWindow.setMenuBarVisibility(false);
+  if (headless) setBrowserMode(mainWindow, 'hidden');
 
   mainWindow.webContents
     .setBackgroundThrottling(false);
 
   wireShortcutCapture(
     mainWindow.webContents
-  );
-
-  mainWindow.loadFile(
-    path.join(
-      __dirname,
-      'ui',
-      'index.html'
-    )
   );
 
   mainWindow.on(
@@ -1886,9 +1888,11 @@ function createWindow() {
       }
     }
   );
+  return mainWindow.loadFile(path.join(__dirname, 'ui', 'index.html'));
 }
 
 app.whenReady().then(async () => {
+  if (!ownsInstance) return;
   Menu.setApplicationMenu(null);
   app.setAppUserModelId('com.shisetsu.hardfire');
 
@@ -1923,9 +1927,10 @@ app.whenReady().then(async () => {
   await harArchive.init();
 
   registerIpc();
-  createWindow();
+  await createWindow();
 
   hardFireController = new HardFireController({
+    getBrowserWindow: () => mainWindow,
     getActiveTab: activeTab,
     createTab,
     activateTab,

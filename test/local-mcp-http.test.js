@@ -98,7 +98,7 @@ test('MCP initializes with the application version and serves tools on subsequen
   assert.equal(initialized.result.serverInfo.version, require('../package.json').version);
   const tools = await post(server, JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }));
   const listed = await tools.json();
-  assert.equal(listed.result.tools.length, 12);
+  assert.equal(listed.result.tools.length, 13);
   const call = await post(server, JSON.stringify({
     jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'hardfire_status', arguments: {} }
   }));

@@ -59,7 +59,7 @@ Plugin source:
 plugin/HardFire/
 ```
 
-The plugin launches its bundled Node.js stdio MCP bridge. It announces the 12 tools
+The plugin launches its bundled Node.js stdio MCP bridge. It announces the 13 tools
 without depending on a running browser and forwards browser actions to:
 
 ```text
@@ -83,8 +83,21 @@ codex mcp add hardfire -- node C:\HardFire\plugin\HardFire\mcp\bridge.cjs
 ```
 
 Reconnect the MCP or restart the Desktop host after changing its transport,
-then test in a new chat. With HardFire closed, `hardfire_status` returns
-`installed: true, connected: false`; start HardFire and call it again.
+then test in a new chat. When a tool is called with HardFire closed, the bridge
+starts it in hidden mode and waits for readiness. Existing browser sessions are
+reused. Call `hardfire_browser` with `mode: "visible"` or `mode: "hidden"` to show
+or hide the window without closing tabs. Hidden mode uses Electron with its window
+hidden and background rendering enabled; it still requires a desktop session.
+On Windows, it uses a completely transparent window excluded from the taskbar,
+without mouse input or focus, so Chromium still renders capturable frames.
+Run `npm run start:headless` to start the same mode manually.
+
+The bridge locates the source checkout or, on Windows, `C:\HardFire` and the default
+per-user installed executable. Set `HARDFIRE_APP_PATH` to another checkout folder
+or installed executable. Set `HARDFIRE_AUTO_START=0` to disable automatic startup.
+Custom `HARDFIRE_MCP_URL` endpoints do not auto-start unless `HARDFIRE_APP_PATH`
+is also configured, and remote endpoints never launch a local process. If startup
+fails, status still reports `installed: true, connected: false` with diagnostics.
 This local package requires Node.js 24 and a local execution host. Cloud/web-only
 chats cannot access the PC's loopback endpoint through this package.
 

@@ -18,6 +18,35 @@
     }
   },
   {
+    "name": "hardfire_browser",
+    "description": "Start HardFire if needed, then show or hide its browser window without closing tabs or losing the session. Hidden mode keeps browser automation active without a visible window.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "hidden"
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
     "name": "hardfire_open",
     "description": "Use HardFire only: open an HTTP or HTTPS URL in the active local HardFire browser tab.",
     "inputSchema": {

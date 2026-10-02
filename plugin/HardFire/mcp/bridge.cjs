@@ -5,6 +5,7 @@ const { version } = require('../plugin.json');
 const tools = require('./tools.json');
 
 const endpoint = process.env.HARDFIRE_MCP_URL || 'http://127.0.0.1:8765/mcp';
+const ensureBrowser = require('./launch.cjs').createLauncher(endpoint);
 const protocols = ['2025-03-26', '2025-06-18', '2025-11-25'];
 let protocolVersion = protocols.at(-1);
 const pending = new Set();
@@ -37,6 +38,8 @@ async function callTool(message) {
   requests.set(message.id, abort);
   let responded = false;
   try {
+    await ensureBrowser();
+    abort.signal.throwIfAborted();
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -66,7 +69,7 @@ async function callTool(message) {
       return { content: [{ type: 'text', text: JSON.stringify({
         installed: true, connected: false, endpoint,
         error: 'HardFire browser unavailable: ' + reason,
-        next_action: 'Start HardFire on this PC, then call hardfire_status again.'
+        next_action: 'Check HARDFIRE_APP_PATH or start HardFire manually, then retry.'
       }) }] };
     }
     return toolError('HardFire is installed, but its browser MCP is unavailable (' + reason + '). Start HardFire on this PC and retry.');

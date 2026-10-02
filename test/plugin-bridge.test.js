@@ -7,7 +7,7 @@ const net = require('node:net');
 const http = require('node:http');
 const { startLocalMcp } = require('../src/local-mcp');
 
-async function client(t, endpoint) {
+async function client(t, endpoint, extraEnv = {}) {
   const [{ Client }, { StdioClientTransport }] = await Promise.all([
     import('@modelcontextprotocol/sdk/client/index.js'),
     import('@modelcontextprotocol/sdk/client/stdio.js')
@@ -15,7 +15,7 @@ async function client(t, endpoint) {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.join(__dirname, '../plugin/HardFire/mcp/bridge.cjs')],
-    env: { ...process.env, HARDFIRE_MCP_URL: endpoint }, stderr: 'pipe'
+    env: { ...process.env, HARDFIRE_MCP_URL: endpoint, ...extraEnv }, stderr: 'pipe'
   });
   const connected = new Client({ name: 'plugin-test', version: '1' });
   t.after(() => connected.close());
@@ -35,7 +35,7 @@ test('installed plugin advertises all tools even when the browser is closed', as
   const connected = await client(t, await unavailableEndpoint());
   const listed = await connected.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), [
-    'hardfire_click', 'hardfire_click_relative', 'hardfire_network_clear',
+    'hardfire_browser', 'hardfire_click', 'hardfire_click_relative', 'hardfire_network_clear',
     'hardfire_network_events', 'hardfire_open', 'hardfire_record_save',
     'hardfire_record_start', 'hardfire_screenshot', 'hardfire_sequence',
     'hardfire_status', 'hardfire_trigger_and_capture', 'hardfire_wait'
@@ -47,12 +47,63 @@ test('installed plugin advertises all tools even when the browser is closed', as
   assert.equal(status.connected, false);
 });
 
+test('plugin starts one hidden browser before concurrent calls and preserves visibility controls', async (t) => {
+  const fs = require('node:fs/promises');
+  const os = require('node:os');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hardfire-launch-'));
+  const endpoint = await unavailableEndpoint();
+  await fs.mkdir(path.join(root, 'node_modules/electron'), { recursive: true });
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'hardfire', main: 'index.js' }));
+  await fs.writeFile(path.join(root, 'node_modules/electron/path.txt'), process.execPath);
+  await fs.writeFile(path.join(root, 'index.js'), `
+    const { startLocalMcp } = require(${JSON.stringify(path.join(__dirname, '../src/local-mcp'))});
+    let visible = !process.argv.includes('--hardfire-hidden');
+    startLocalMcp({status: async () => ({connected:true, visible, pid:process.pid}),
+      browser: async (mode) => { visible = mode === 'visible'; return {visible, pid:process.pid}; }
+    }, {port: ${new URL(endpoint).port}});
+  `);
+  let pid;
+  t.after(async () => { if (pid) { try { process.kill(pid); } catch {} } await fs.rm(root, { recursive:true, force:true, maxRetries:10, retryDelay:100 }); });
+  const connected = await client(t, endpoint, { HARDFIRE_APP_PATH: root });
+  const results = await Promise.all([1,2].map(() => connected.callTool({name:'hardfire_status', arguments:{}})));
+  const states = results.map(r => JSON.parse(r.content[0].text));
+  pid = states[0].pid;
+  assert.equal(states[0].connected, true);
+  assert.equal(states[0].visible, false);
+  assert.equal(states[1].pid, pid);
+  const shown = await connected.callTool({name:'hardfire_browser', arguments:{mode:'visible'}});
+  assert.equal(JSON.parse(shown.content[0].text).visible, true);
+  const hidden = await connected.callTool({name:'hardfire_browser', arguments:{mode:'hidden'}});
+  assert.equal(JSON.parse(hidden.content[0].text).visible, false);
+  const invalid = await connected.callTool({name:'hardfire_browser', arguments:{mode:'wrong'}});
+  assert.equal(invalid.isError, true);
+});
+
 test('offline browser actions return a tool error rather than losing the installed plugin', async (t) => {
   const connected = await client(t, await unavailableEndpoint());
   const result = await connected.callTool({ name: 'hardfire_open', arguments: { url: 'https://example.test/' } });
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /HardFire/);
-  assert.equal((await connected.listTools()).tools.length, 12);
+  assert.equal((await connected.listTools()).tools.length, 13);
+});
+
+test('normal secondary-instance exit waits for the primary browser to become ready', async (t) => {
+  const fs = require('node:fs/promises');
+  const os = require('node:os');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hardfire-secondary-'));
+  await fs.mkdir(path.join(root, 'node_modules/electron'), { recursive:true });
+  await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({name:'hardfire',main:'index.js'}));
+  await fs.writeFile(path.join(root, 'node_modules/electron/path.txt'), process.execPath);
+  await fs.writeFile(path.join(root, 'index.js'), 'process.exit(0);');
+  const endpoint = await unavailableEndpoint();
+  const connected = await client(t, endpoint, {HARDFIRE_APP_PATH:root});
+  let server;
+  const pendingServer = new Promise(resolve => setTimeout(resolve, 700)).then(async () => {
+    server = await startLocalMcp({status:async () => ({connected:true})}, {port:Number(new URL(endpoint).port)});
+  });
+  t.after(async () => { await pendingServer; await server?.stop(); await fs.rm(root, {recursive:true,force:true,maxRetries:10,retryDelay:100}); });
+  const result = await connected.callTool({name:'hardfire_status',arguments:{}});
+  assert.equal(JSON.parse(result.content[0].text).connected, true);
 });
 
 test('plugin preserves backend JSON-RPC errors instead of reporting a closed browser', async (t) => {
@@ -88,5 +139,5 @@ test('plugin relays live calls and its bundled tool schemas match the HTTP serve
   await server.stop();
   const offline = await connected.callTool({ name: 'hardfire_status', arguments: {} });
   assert.equal(JSON.parse(offline.content[0].text).connected, false);
-  assert.equal((await connected.listTools()).tools.length, 12);
+  assert.equal((await connected.listTools()).tools.length, 13);
 });
