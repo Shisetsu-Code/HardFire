@@ -4,24 +4,17 @@ HardFire combines the Firetrace control plane with the native Hard Browser engin
 
 It replaces the old `Playwright -> Chrome` layer with one Electron/Chromium process using `WebContentsView + CDP + HarRecorder`.
 
-## What stays compatible
+## HardFire identity
 
-The Firetrace command contract is preserved:
+HardFire is now separate from the legacy Firetrace app.
 
-- `browser_status`
-- `browser_open`
-- `browser_click`
-- `browser_click_relative`
-- `browser_wait`
-- `browser_screenshot`
-- `network_events`
-- `network_clear`
-- `trigger_and_capture`
-- `sequence`
+- Local MCP server name: `HardFire`
+- Local tools: `hardfire_*`
+- Remote Cloudflare Worker: `hardfire-mcp`
+- Remote agent id: `hardfire`
+- Remote endpoint: `https://hardfire-mcp.braian-n-l.workers.dev/mcp`
 
-The Cloudflare worker under `cloudflare/` keeps using the legacy agent id `firetrace` by default. Existing Firetrace MCP deployments can therefore control HardFire without changing the remote command schema.
-
-Do not run the old Firetrace worker and HardFire at the same time with the same agent id.
+Firetrace may still exist as an older independent project, but HardFire no longer announces or registers itself as Firetrace.
 
 ## Browser engine
 
@@ -96,27 +89,27 @@ npm start
 
 The MCP server binds to `127.0.0.1`, not to the LAN or Internet.
 
-## Existing Firetrace Cloudflare connection
+## HardFire Cloudflare connection
 
-HardFire reads the same variables as Firetrace:
-
-```text
-CF_CONTROL_URL
-CF_CONTROL_TOKEN
-FIRETRACE_CONTROL_URL
-FIRETRACE_CONTROL_TOKEN
-FIRETRACE_AGENT_ID
-```
-
-The Firetrace-specific values override the generic values.
-
-Default agent id:
+Preferred variables:
 
 ```text
-firetrace
+HARDFIRE_CONTROL_URL
+HARDFIRE_CONTROL_TOKEN
+HARDFIRE_AGENT_ID
 ```
 
-On Windows HardFire also reads persisted user environment values from `HKCU\Environment`, so it can reuse credentials configured for the previous Firetrace worker.
+HardFire may reuse `CF_CONTROL_URL`, `CF_CONTROL_TOKEN`, `FIRETRACE_CONTROL_URL`, or `FIRETRACE_CONTROL_TOKEN` only as migration fallbacks for reaching the same control plane.
+
+It does **not** inherit `FIRETRACE_AGENT_ID`.
+
+Default identity:
+
+```text
+HARDFIRE_AGENT_ID=hardfire
+```
+
+On Windows these values may also be read from `HKCU\Environment`.
 
 Remote path:
 
@@ -149,7 +142,7 @@ Sensitive authorization/cookie/API-key headers are redacted before command resul
 
 ## Cloudflare MCP development
 
-The original Firetrace MCP worker is preserved under `cloudflare/`.
+The `cloudflare/` directory contains HardFire's own remote MCP Worker.
 
 ```powershell
 cd cloudflare
@@ -188,16 +181,16 @@ The installed application uses the HardFire GitHub repository for automatic upda
 ```text
 src/
   main.js                  Hard Browser application
-  hardfire-controller.js   Firetrace command adapter
+  hardfire-controller.js   HardFire command adapter
   local-mcp.js             localhost MCP for GPT Worker
-  remote-agent.js          Firetrace-compatible Cloudflare WSS agent
+  remote-agent.js          HardFire Cloudflare WSS agent
   har-recorder.js          HTTP + WS protocol capture
   runtime-controller.js    persistent CDP/runtime state
   mcp/                     local MCP connection UI
   import/                  targets/HAR archive UI
   ui/                      browser chrome
 cloudflare/
-  src/                     Firetrace-compatible remote MCP worker
+  src/                     HardFire remote MCP worker
 test/
   *.test.js                Hard Browser + HardFire tests
 ```
