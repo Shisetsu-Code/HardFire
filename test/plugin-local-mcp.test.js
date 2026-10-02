@@ -8,7 +8,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const pluginRoot = path.join(root, 'plugin', 'HardFire');
 
-test('HardFire keeps its direct localhost MCP while callables come from the app dependency', () => {
+test('HardFire declares its direct localhost MCP for Desktop and Worker clients', () => {
   const portable = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'mcp.json'), 'utf8'));
   const compat = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.mcp.json'), 'utf8'));
 
