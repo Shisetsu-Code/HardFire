@@ -1,27 +1,25 @@
 # HardFire
 
-HardFire is a local Electron/Chromium browser for browser automation, HAR capture and WebSocket inspection through a local MCP.
+HardFire is an Electron/Chromium browser for browser automation, full HAR capture and WebSocket inspection.
 
-There is no Cloudflare worker and no remote agent in the current architecture.
-
-## Architecture
+It exposes two MCP paths for different clients:
 
 ```text
-ChatGPT Desktop / GPT Worker
-        ↓
-HardFire plugin
-        ↓
-Local MCP
-http://127.0.0.1:8765/mcp
-        ↓
-HardFire
-        ↓
-Electron / CDP / HAR / WebSocket
+ChatGPT
+  -> https://hardfire-mcp.braian-n-l.workers.dev/mcp
+  -> OAuth-protected Cloudflare MCP
+  -> shisetsu-browser-control
+  -> outbound WSS agent_id=hardfire
+  -> HardFire on the user's PC
+
+GPT Worker / direct local MCP client
+  -> http://127.0.0.1:8765/mcp
+  -> HardFire on the user's PC
 ```
 
-The MCP binds only to `127.0.0.1`.
+The PC does not expose an inbound Internet port. The remote path is initiated by HardFire as an outbound WSS connection.
 
-## Run
+## Run locally
 
 ```powershell
 cd C:\HardFire
@@ -31,13 +29,40 @@ npm run check
 npm start
 ```
 
-Health:
+Local MCP health:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8765/health
 ```
 
-## Local MCP tools
+## Remote control configuration
+
+HardFire reads these preferred Windows/user environment values:
+
+```text
+HARDFIRE_CONTROL_URL
+HARDFIRE_CONTROL_TOKEN
+HARDFIRE_AGENT_ID
+```
+
+For migration it can reuse:
+
+```text
+CF_CONTROL_URL
+CF_CONTROL_TOKEN
+FIRETRACE_CONTROL_URL
+FIRETRACE_CONTROL_TOKEN
+```
+
+The default HardFire identity is:
+
+```text
+HARDFIRE_AGENT_ID=hardfire
+```
+
+It does not reuse the legacy `firetrace` agent id.
+
+## HardFire tools
 
 - `hardfire_status`
 - `hardfire_open`
@@ -52,69 +77,67 @@ Invoke-RestMethod http://127.0.0.1:8765/health
 - `hardfire_trigger_and_capture`
 - `hardfire_sequence`
 
-### Full HAR recording from GPT
+The remote MCP additionally exposes `hardfire_command_result` for reading a previously submitted command without repeating it.
 
-Start recording:
+## Full HAR recording
 
-```text
-hardfire_record_start
-```
+`hardfire_record_start` starts the same recorder as the visible **REC** button without reloading the game.
 
-This uses the same recorder as the visible **REC** button and does not reload the game.
-
-After GPT performs the requested interactions, save it with:
-
-```text
-hardfire_record_save
-```
-
-The HAR is written automatically to:
+`hardfire_record_save` stops and saves the capture under:
 
 ```text
 %USERPROFILE%\Downloads\HardFire-HARs\
 ```
 
-The result returns the exact file path, file size, number of HAR entries and capture statistics.
-
 ## ChatGPT plugin
 
-The plugin source is under:
+Plugin source:
 
 ```text
 plugin/HardFire/
 ```
 
-Build the ZIP:
+The ChatGPT plugin uses the callable HTTPS MCP:
+
+```text
+https://hardfire-mcp.braian-n-l.workers.dev/mcp
+```
+
+The localhost MCP remains available independently for GPT Worker and other direct local MCP clients.
+
+Build the plugin ZIP on Windows:
 
 ```powershell
 npm run plugin:zip
 ```
 
-Output:
+## Cloudflare MCP
+
+Source:
 
 ```text
-C:\HardFire\dist\HardFire-Plugin.zip
+cloudflare/
 ```
 
-The plugin includes the local MCP declaration and a routing skill. Use it as:
+Tests:
 
-```text
-@HardFire empieza a grabar, haz tres tiradas y guarda el HAR.
+```powershell
+cd cloudflare
+npm ci
+npm test
+npm run check
 ```
 
-The skill explicitly prefers HardFire for local browser, HAR, endpoint and WebSocket tasks.
+The Worker uses OAuth for ChatGPT and a service binding to the existing `shisetsu-browser-control` control plane.
 
 ## Browser features
-
-HardFire retains the Hard Browser engine:
 
 - Electron/Chromium with GPU acceleration
 - resident tabs without background throttling
 - 1x / 2x / 4x / 8x runtime acceleration
-- HTTP request and response bodies
-- WebSocket frames and decoded game transactions
-- WebSocket spin correlation
+- complete HTTP request/response HAR capture
+- WebSocket frame capture and decoded game transactions
 - persistent HAR archive
-- rolling targets.txt prefetch
+- rolling `targets.txt` prefetch
 
-No Playwright or Python browser worker is required.
+No Playwright browser worker is required.

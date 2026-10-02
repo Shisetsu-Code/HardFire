@@ -280,7 +280,10 @@ class HardFireController {
       browser_click_relative: 'click_relative',
       browser_wait: 'wait'
     };
-    const name = aliases[action] || action;
+    const aliased = aliases[action] || action;
+    const name = aliased.startsWith('hardfire_')
+      ? aliased.slice('hardfire_'.length)
+      : aliased;
     if (name === 'status') return this.status();
     if (name === 'open') return this.open(args.url);
     if (name === 'wait') return this.wait(args.ms);
