@@ -1,0 +1,7 @@
+:root{color-scheme:dark;font-family:"Segoe UI",Arial,sans-serif;background:#0f1114;color:#e8eaed}
+*{box-sizing:border-box}body{margin:0;padding:28px;background:#0f1114}main{max-width:880px;margin:0 auto;display:grid;gap:16px}
+.card{background:#171a1f;border:1px solid #30363d;border-radius:10px;padding:22px}h1,h2{margin:0 0 10px}h1{font-size:22px}h2{font-size:16px;margin-top:2px}p{color:#9aa4af}
+.row{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #292e34}.row code{max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.endpoint{display:flex;gap:8px;margin:16px 0}.endpoint code{flex:1;padding:9px;background:#101318;border:1px solid #2c3239;border-radius:5px}
+button{background:#252a30;color:#e8eaed;border:1px solid #3b424a;border-radius:5px;padding:8px 12px;cursor:pointer}button:hover{background:#303740}
+pre{white-space:pre-wrap;background:#101318;border:1px solid #2c3239;border-radius:6px;padding:14px;color:#b9c1c9}.hint,.tools{font-size:12px;line-height:1.55}
