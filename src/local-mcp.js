@@ -27,7 +27,7 @@ async function createProtocolServer(controller) {
     import('zod')
   ]);
 
-  const server = new McpServer({ name: 'HardFire', version: '1.2.0' });
+  const server = new McpServer({ name: 'HardFire', version: '1.3.0' });
   const text = (value) => ({
     content: [{ type: 'text', text: JSON.stringify(value) }]
   });
@@ -92,6 +92,12 @@ async function createProtocolServer(controller) {
 
   register('hardfire_network_clear', 'Use HardFire only: clear HardFire\'s most recent network capture buffer.', {}, false,
     async () => text(controller.networkClear()));
+
+  register('hardfire_record_start', 'Use HardFire only: start a full HAR recording on the active local HardFire game tab. This uses the same recorder as the REC button and does not reload the page.', {}, false,
+    async () => text(await controller.recordStart()));
+
+  register('hardfire_record_save', 'Use HardFire only: stop the active HAR recording, save it automatically under Downloads/HardFire-HARs, and return the saved path and capture statistics.', {}, false,
+    async () => text(await controller.recordSave()));
 
   register('hardfire_trigger_and_capture', 'Use HardFire only: perform one click and capture matching HTTP and WebSocket request/response traffic from the active HardFire tab.', {
     url_contains: z.string().max(2000).default('fn=play'),
