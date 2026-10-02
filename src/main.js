@@ -22,7 +22,6 @@ const { parseTargets } = require('./target-import');
 const { HarArchiveManager } = require('./har-archive');
 const { configureAutoUpdater } = require('./update-manager');
 const { HardFireController } = require('./hardfire-controller');
-const { RemoteAgent } = require('./remote-agent');
 const { startLocalMcp } = require('./local-mcp');
 
 const TOOLBAR_HEIGHT = 68;
@@ -55,7 +54,6 @@ let harArchive = null;
 let importLoopPromise = null;
 let updateManager = null;
 let hardFireController = null;
-let remoteAgent = null;
 let localMcp = null;
 
 const tabs = new Map();
@@ -270,13 +268,6 @@ function getMcpState() {
       host: '127.0.0.1',
       port: Number(process.env.HARDFIRE_MCP_PORT || 8765),
       endpoint: `http://127.0.0.1:${Number(process.env.HARDFIRE_MCP_PORT || 8765)}/mcp`,
-      error: ''
-    },
-    remote: remoteAgent?.state?.() || {
-      enabled: false,
-      connected: false,
-      agentId: process.env.HARDFIRE_AGENT_ID || 'hardfire',
-      baseUrl: '',
       error: ''
     }
   };
@@ -1070,6 +1061,66 @@ async function stopAndSave(tab) {
   return {
     ok: true,
     path: result.filePath,
+    stats: tab.recorder.getStats()
+  };
+}
+
+async function saveRecordingForMcp(tab) {
+  if (!tab || tab.kind !== 'game') {
+    return {
+      ok: false,
+      error: 'Select a game tab first'
+    };
+  }
+
+  if (!tab.recorder?.recording) {
+    return {
+      ok: false,
+      error: 'No active capture'
+    };
+  }
+
+  const har =
+    await tab.recorder.stop();
+
+  const outputDir =
+    path.join(
+      app.getPath('downloads'),
+      'HardFire-HARs'
+    );
+
+  await fs.mkdir(
+    outputDir,
+    { recursive: true }
+  );
+
+  const filePath =
+    path.join(
+      outputDir,
+      safeFilename(tab.url)
+    );
+
+  const payload =
+    JSON.stringify(har, null, 2);
+
+  await fs.writeFile(
+    filePath,
+    payload,
+    'utf8'
+  );
+
+  scheduleState();
+
+  return {
+    ok: true,
+    path: filePath,
+    bytes:
+      Buffer.byteLength(
+        payload,
+        'utf8'
+      ),
+    entries:
+      har.log?.entries?.length || 0,
     stats: tab.recorder.getStats()
   };
 }
@@ -1878,7 +1929,11 @@ app.whenReady().then(async () => {
     getActiveTab: activeTab,
     createTab,
     activateTab,
-    networkTap: () => networkTap
+    networkTap: () => networkTap,
+    startRecording: (tab) =>
+      startRecording(tab, false),
+    saveRecording: (tab) =>
+      saveRecordingForMcp(tab)
   });
 
   try {
@@ -1887,11 +1942,6 @@ app.whenReady().then(async () => {
     console.warn('[HardFire] Local MCP failed:', error?.message || error);
   }
 
-  remoteAgent = new RemoteAgent(
-    hardFireController,
-    () => {}
-  );
-  remoteAgent.start();
 
   updateManager = configureAutoUpdater(
     () => mainWindow
@@ -1910,7 +1960,6 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   updateManager?.stop?.();
-  remoteAgent?.stop?.();
   if (localMcp?.stop) {
     Promise.resolve(localMcp.stop()).catch(() => {});
   }
