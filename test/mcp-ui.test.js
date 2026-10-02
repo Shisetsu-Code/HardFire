@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-test('local MCP tab HTML contains all renderer targets', () => {
+test('MCP tab exposes both local and remote HardFire status', () => {
   const html = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'mcp', 'index.html'),
     'utf8'
@@ -16,7 +16,10 @@ test('local MCP tab HTML contains all renderer targets', () => {
     'endpoint',
     'config',
     'copyUrl',
-    'copyConfig'
+    'copyConfig',
+    'remoteStatus',
+    'agent',
+    'remoteUrl'
   ]) {
     assert.match(
       html,
@@ -28,5 +31,6 @@ test('local MCP tab HTML contains all renderer targets', () => {
   assert.match(html, /HardFire MCP/);
   assert.match(html, /hardfire_record_start/);
   assert.match(html, /hardfire_record_save/);
-  assert.doesNotMatch(html, /Cloudflare WSS/i);
+  assert.match(html, /Cloudflare WSS/i);
+  assert.match(html, /GPT Worker/i);
 });
