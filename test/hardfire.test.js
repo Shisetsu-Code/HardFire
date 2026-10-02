@@ -5,9 +5,9 @@ const assert = require('node:assert/strict');
 const { wsUrl } = require('../src/remote-agent');
 const { headersArrayToObject } = require('../src/redact');
 
-test('remote Firetrace URL is converted to WSS', () => {
+test('remote HardFire URL is converted to WSS', () => {
   assert.equal(
-    wsUrl('https://control.example', 'firetrace'),
+    wsUrl('https://control.example', 'hardfire'),
     'wss://control.example/ws?agent_id=firetrace'
   );
 });
