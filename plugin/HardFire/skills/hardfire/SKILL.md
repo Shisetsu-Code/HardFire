@@ -1,39 +1,31 @@
 ---
 name: hardfire
-description: Operate the user's local HardFire browser and inspect its HTTP/HAR/WebSocket traffic.
+description: Use when the user asks to operate their local HardFire browser, invoke its installed plugin, or inspect HAR and WebSocket traffic.
 ---
 
-Use HardFire whenever the user asks to operate, inspect, test, or capture traffic from the browser running on their local PC.
+Use the native HardFire MCP tools for the user's local HardFire browser. The plugin's bundled stdio bridge announces its tools even while the browser is closed, and relays browser actions to the local HTTP MCP at http://127.0.0.1:8765/mcp.
 
-HardFire has two tool surfaces:
-- Native HardFire tools, when available: hardfire_*.
-- A callable compatibility transport through the existing Firetrace app. This transport still controls the HardFire browser process; Firetrace is only the registered ChatGPT transport name.
+## Check availability
 
-Routing rules:
-- Prefer native hardfire_* tools when they are callable.
-- If native hardfire_* tools are not callable but the Firetrace compatibility app is available, use the compatibility mapping below without telling the user to switch products.
-- Treat the active HardFire game tab as the default target.
-- Do not use Playwright, a cloud browser, Computer Use, or another browser unless HardFire and its compatibility transport are unavailable.
-- Preserve the current tab/session whenever possible.
+Call hardfire_status first when the state is uncertain.
 
-Compatibility mapping:
-- hardfire_status -> browser_status
-- hardfire_open -> browser_open
-- hardfire_click -> browser_click
-- hardfire_click_relative -> browser_click_relative
-- hardfire_wait -> browser_wait
-- hardfire_screenshot -> browser_screenshot
-- hardfire_network_events -> network_events
-- hardfire_network_clear -> network_clear
-- hardfire_trigger_and_capture -> trigger_and_capture
-- hardfire_command_result -> command_result
+- installed: true with connected: false means the plugin is available and the HardFire browser is closed or unreachable. Start HardFire on this PC, then call hardfire_status again. Do not tell the user the plugin is missing or ask them to reinstall it for this state.
+- connected: true means the local browser responded. Use its actual tab, URL, viewport and recording state.
+- If hardfire_* tools are absent from this chat, inspect the local plugin/MCP registration. After installing or changing the transport, reconnect the HardFire MCP or restart the host and test in a new chat. A loaded skill alone does not prove its MCP tools are available.
+- Do not substitute another app's browser_status tool for HardFire. Do not infer a successful installation or connection from package files alone.
+- This plugin runs on the local Desktop/Codex host with Node.js. A cloud or web-only host cannot reach the PC's loopback endpoint through this package.
 
-The compatibility app does not expose hardfire_record_start, hardfire_record_save, or hardfire_sequence. Use those only when native HardFire tools are callable.
+## Tools
 
-Operational guidance:
-- If state is uncertain, call hardfire_status or compatibility browser_status first.
-- For visual inspection, call hardfire_screenshot or compatibility browser_screenshot.
-- For a single click, prefer relative coordinates when based on the current screenshot.
-- For HTTP/WebSocket inspection around one click, use hardfire_trigger_and_capture or compatibility trigger_and_capture.
-- Do not infer loading state from stale information; verify current status or screenshot.
-- For network analysis, report actual captured request/response or WebSocket payloads and distinguish direct observations from inference.
+- hardfire_status: read the browser state without navigating.
+- hardfire_open: open an HTTP or HTTPS URL.
+- hardfire_click and hardfire_click_relative: click absolute or normalized viewport coordinates.
+- hardfire_wait and hardfire_screenshot: wait or inspect the current viewport.
+- hardfire_network_events and hardfire_network_clear: inspect or clear the last action's capture.
+- hardfire_record_start and hardfire_record_save: control the full HAR recorder used by the REC button.
+- hardfire_trigger_and_capture: click once and capture matching HTTP/WebSocket traffic.
+- hardfire_sequence: perform a short ordered sequence of supported actions.
+
+Preserve the current tab/session unless the user requests navigation. Prefer relative coordinates when clicking from a screenshot. A native browser call that fails because the browser is closed does not uninstall the plugin; start the browser and retry.
+
+Use actual captured request/response and WebSocket payloads for network analysis. Do not infer current state from stale screenshots or fabricate traffic. Do not use another browser unless the user requests it or HardFire is unavailable.

@@ -1,7 +1,37 @@
 {
+  "interface": {
+    "displayName": "HardFire",
+    "shortDescription": "Control local de HardFire",
+    "longDescription": "Controla HardFire en tu PC mediante su MCP local en 127.0.0.1 para navegación, capturas, HAR y tráfico WebSocket.",
+    "developerName": "Shisetsu-Code",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Shisetsu-Code/HardFire",
+    "defaultPrompt": [
+      "Usa HardFire para revisar la pestaña local actual.",
+      "Usa HardFire para grabar y guardar el HAR de las próximas tiradas."
+    ]
+  },
   "name": "hardfire",
-  "version": "1.4.2",
-  "description": "Control the local HardFire browser through its localhost MCP.",
-  "skills": "./skills/",
+  "version": "1.4.3",
+  "description": "Operate the local HardFire browser on the user's PC through its localhost MCP.",
+  "author": {
+    "name": "Shisetsu-Code",
+    "url": "https://github.com/Shisetsu-Code"
+  },
+  "keywords": [
+    "browser",
+    "automation",
+    "har",
+    "websocket",
+    "network",
+    "hardfire"
+  ],
+  "homepage": "https://github.com/Shisetsu-Code/HardFire",
+  "repository": "https://github.com/Shisetsu-Code/HardFire",
+  "skills": "./skills",
   "mcpServers": "./.mcp.json"
 }

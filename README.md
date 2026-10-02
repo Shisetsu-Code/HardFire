@@ -5,9 +5,11 @@ HardFire is a local Electron/Chromium browser for browser automation, full HAR c
 ## Architecture
 
 ```text
-ChatGPT Desktop / GPT Worker
+ChatGPT Desktop / Codex (local host)
         ↓
 HardFire local plugin
+        ↓
+Bundled stdio MCP bridge (discovery works while the browser is closed)
         ↓
 http://127.0.0.1:8765/mcp
         ↓
@@ -57,13 +59,37 @@ Plugin source:
 plugin/HardFire/
 ```
 
-The plugin declares only the local MCP:
+The plugin launches its bundled Node.js stdio MCP bridge. It announces the 12 tools
+without depending on a running browser and forwards browser actions to:
 
 ```text
 http://127.0.0.1:8765/mcp
 ```
 
 It has no Firetrace App dependency.
+
+Install or update the local plugin from the repository root:
+
+```powershell
+codex plugin marketplace add .
+codex plugin add hardfire@hardfire-local
+```
+
+If an older direct HTTP `hardfire` MCP registration exists, update it to the
+bridge so tool discovery also survives closing the browser:
+
+```powershell
+codex mcp add hardfire -- node C:\HardFire\plugin\HardFire\mcp\bridge.cjs
+```
+
+Reconnect the MCP or restart the Desktop host after changing its transport,
+then test in a new chat. With HardFire closed, `hardfire_status` returns
+`installed: true, connected: false`; start HardFire and call it again.
+This local package requires Node.js 24 and a local execution host. Cloud/web-only
+chats cannot access the PC's loopback endpoint through this package.
+
+After changing tool schemas, regenerate the bundled discovery catalog with
+`npm run plugin:tools`. The integration tests check it against the live MCP.
 
 Build the plugin ZIP:
 
