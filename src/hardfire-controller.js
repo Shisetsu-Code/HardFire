@@ -3,6 +3,13 @@
 const { HarRecorder } = require('./har-recorder');
 const { headersArrayToObject } = require('./redact');
 const { isBrowserVisible, setBrowserMode } = require('./browser-window-mode');
+const { BrowserTabs } = require('./browser-tabs');
+const { PageConnection } = require('./page-connection');
+const { ElementReferences } = require('./element-references');
+const { PageSnapshot } = require('./page-snapshot');
+const { ElementActions } = require('./element-actions');
+const { press, parseKey } = require('./keyboard-input');
+const { waitFor, validateWait } = require('./browser-waits');
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,6 +51,14 @@ function validateArgs(action, args) {
     if (args.url_contains !== undefined && (typeof args.url_contains !== 'string' || args.url_contains.length > 2000)) {
       throw new Error('url_contains must be a string with at most 2000 characters');
     }
+  } else if (action === 'wait_for') {
+    validateWait(args);
+  } else if (['click_ref','fill_ref','press'].includes(action)) {
+    if (action !== 'press' || args.ref !== undefined) {
+      if (typeof args.ref !== 'string' || !args.ref || args.ref.length > 100) throw new Error('ref must be a current element reference');
+    }
+    if (action === 'fill_ref' && (typeof args.value !== 'string' || args.value.length > 65536)) throw new Error('invalid fill value');
+    if (action === 'press') parseKey(args.key);
   } else if (!['record_start', 'record_save', 'status', 'network_clear', 'network_events', 'sequence'].includes(action)) {
     throw new Error(`unsupported action: ${action}`);
   }
@@ -51,6 +66,9 @@ function validateArgs(action, args) {
 
 class HardFireController {
   constructor(options) {
+    this.tabs = new BrowserTabs({...options,listTabs:options.listTabs || (()=>[options.getActiveTab?.()].filter(Boolean))});
+    this.captures = new Map();
+    this.pages = new WeakMap();
     this.getActiveTab = options.getActiveTab;
     this.createTab = options.createTab;
     this.activateTab = options.activateTab;
@@ -62,6 +80,10 @@ class HardFireController {
   }
 
   _tab(create = true) {
+    if (this.targetTab) {
+      if (this.targetTab.view.webContents.isDestroyed()) throw new Error('tab_not_found: browser tab is closed');
+      return this.targetTab;
+    }
     let tab = this.getActiveTab?.();
     if ((!tab || tab.kind !== 'game') && create) {
       tab = this.createTab?.('about:blank');
@@ -72,6 +94,24 @@ class HardFireController {
     return tab;
   }
 
+  withTab(tabId) {
+    const target=this.targetTab && tabId === undefined ? this._tab(false) : this.tabs.resolve(tabId);
+    const scoped=Object.create(this);
+    scoped.targetTab=target;
+    scoped.getActiveTab=()=>scoped._tab(false);
+    return scoped;
+  }
+
+  page() {
+    const tab=this._tab(false),wc=this._wc(tab);
+    if(!this.pages.has(wc)){
+      const connection=PageConnection.for(wc,{sessionsProvider:()=>tab.runtimeController?.getSessionIds?.() || []});
+      const references=new ElementReferences(connection,tab.id);
+      this.pages.set(wc,{connection,references,snapshot:new PageSnapshot(connection,references),actions:new ElementActions(connection,references)});
+    }
+    return this.pages.get(wc);
+  }
+
   _wc(tab = this._tab()) {
     const wc = tab?.view?.webContents;
     if (!wc || wc.isDestroyed()) throw new Error('Browser tab is closed');
@@ -79,10 +119,7 @@ class HardFireController {
   }
 
   async _send(tab, method, params = {}) {
-    const wc = this._wc(tab);
-    const dbg = wc.debugger;
-    if (!dbg.isAttached()) dbg.attach();
-    return dbg.sendCommand(method, params);
+    return PageConnection.for(this._wc(tab), {sessionsProvider:()=>tab.runtimeController?.getSessionIds?.() || []}).send(method,params);
   }
 
   async status() {
@@ -114,13 +151,28 @@ class HardFireController {
 
   async browser(mode) {
     const state = setBrowserMode(this.getBrowserWindow?.(), mode);
-    return { ...(await this.status()), ...state };
+    return { ...(await this.status()), ...state, headless: !state.visible };
+  }
+
+  async launch(headless) {
+    if (typeof headless !== 'boolean') throw new Error('headless must be boolean');
+    return this.browser(headless ? 'hidden' : 'visible');
+  }
+
+  async clickRef(ref) { validateArgs('click_ref',{ref});return this.page().actions.click(ref); }
+  async waitFor(args) { return waitFor(this.page().connection,args); }
+  async fillRef(ref,value) { validateArgs('fill_ref',{ref,value});return this.page().actions.fill(ref,value); }
+  async press(args) {
+    validateArgs('press',args);
+    const page=this.page();const target=args.ref ? await page.actions.focus(args.ref) : null;
+    return press(page.connection,{key:args.key,sessionId:target?.sessionId});
   }
 
   async open(url) {
     validateArgs('open', { url });
     const tab = this._tab();
     const wc = this._wc(tab);
+    await tab.navigationReady;
     await wc.loadURL(String(url));
     return { url: wc.getURL() || String(url), tab_id: tab.id };
   }
@@ -167,11 +219,12 @@ class HardFireController {
 
   networkClear() {
     this.lastCapture = [];
+    if (this.targetTab) this.captures.delete(this.targetTab.id);
     return { cleared: true };
   }
 
   networkEvents() {
-    return { events: this.lastCapture };
+    return { events: this.targetTab ? this.captures.get(this.targetTab.id) || [] : this.lastCapture };
   }
 
   async recordStart() {
@@ -286,6 +339,7 @@ class HardFireController {
       });
       const captures = matched.map((entry) => this._captureFromEntry(entry));
       this.lastCapture = captures;
+      this.captures.set(tab.id, captures);
       return { filter, captures };
     } finally {
       if (recorder.recording) {
@@ -294,7 +348,7 @@ class HardFireController {
     }
   }
 
-  async sequence(steps = []) {
+  async sequence(steps = [], signal) {
     if (!Array.isArray(steps) || steps.length > 50) {
       throw new Error('sequence steps must be an array with at most 50 items');
     }
@@ -308,23 +362,32 @@ class HardFireController {
       }
     }
     const results = [];
+    const targets=steps.map(step=>step.args?.tab_id !== undefined ? this.withTab(step.args.tab_id) : null);
+    const defaultTarget=steps.length ? this.withTab() : this;
+    for (let i=0;i<steps.length;i++) if (steps[i].args?.ref) await (targets[i] || defaultTarget).page().references.resolve(steps[i].args.ref);
     let screenshot = null;
 
     for (let index = 0; index < steps.length; index += 1) {
+      signal?.throwIfAborted();
       const step = steps[index] || {};
       const action = step.action;
       const args = step.args || {};
+      const target=targets[index] || defaultTarget;
       let data;
-      if (action === 'click') data = await this.click(args.x, args.y);
-      else if (action === 'click_relative') data = await this.clickRelative(args.rx, args.ry);
-      else if (action === 'wait') data = await this.wait(args.ms === undefined ? 500 : args.ms);
-      else if (action === 'open') data = await this.open(args.url);
-      else if (action === 'trigger_and_capture') data = await this.triggerAndCapture(args);
-      else if (action === 'record_start') data = await this.recordStart();
-      else if (action === 'record_save') data = await this.recordSave();
-      else if (action === 'status') data = await this.status();
+      if (action === 'click') data = await target.click(args.x, args.y);
+      else if (action === 'click_relative') data = await target.clickRelative(args.rx, args.ry);
+      else if (action === 'wait') data = await target.wait(args.ms === undefined ? 500 : args.ms);
+      else if (action === 'open') data = await target.open(args.url);
+      else if (action === 'trigger_and_capture') data = await target.triggerAndCapture(args);
+      else if (action === 'record_start') data = await target.recordStart();
+      else if (action === 'record_save') data = await target.recordSave();
+      else if (action === 'status') data = await target.status();
+      else if (action === 'click_ref') data = await target.clickRef(args.ref);
+      else if (action === 'fill_ref') data = await target.fillRef(args.ref,args.value);
+      else if (action === 'press') data = await target.press(args);
+      else if (action === 'wait_for') data = await target.waitFor({...args,signal});
       else if (action === 'screenshot') {
-        const bytes = await this.screenshot(args.quality ?? 70);
+        const bytes = await target.screenshot(args.quality ?? 70);
         screenshot = { base64: bytes.toString('base64'), bytes: bytes.length, quality: args.quality ?? 70 };
         data = { bytes: bytes.length, quality: args.quality ?? 70 };
       } else {

@@ -1,4 +1,5 @@
 'use strict';
+const { PageConnection } = require('./page-connection');
 
 const TEXTUAL_TYPES = new Set(['Document', 'XHR', 'Fetch', 'Other']);
 const PROTOCOL_BODY_LIMIT = 64 * 1024 * 1024;
@@ -793,6 +794,7 @@ class HarRecorder {
     const dbg = this.webContents.debugger;
 
     try {
+      this.releaseConnection = PageConnection.for(this.webContents).acquire();
       if (!dbg.isAttached()) {
         dbg.attach();
         this.ownsDebugger = true;
@@ -811,6 +813,8 @@ class HarRecorder {
       this.cdpAvailable = false;
       this.cdpError = error?.message || String(error);
       this.recording = false;
+      this.releaseConnection?.();
+      this.releaseConnection = null;
 
       this.networkTap?.unregister(this.webContents.id, this);
 
@@ -934,6 +938,8 @@ class HarRecorder {
 
     this.cdpAvailable = false;
     this.stopping = false;
+    this.releaseConnection?.();
+    this.releaseConnection = null;
     this.onUpdate();
     return this.toJSON();
   }

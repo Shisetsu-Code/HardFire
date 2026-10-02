@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { HardFireController } = require('../src/hardfire-controller');
 const { headersArrayToObject } = require('../src/redact');
+const { EventEmitter } = require('node:events');
 
 function controllerFixture() {
   const effects = [];
@@ -16,10 +17,10 @@ function controllerFixture() {
         getURL: () => 'https://game.test/',
         getTitle: () => 'Game',
         loadURL: async (url) => effects.push(['open', url]),
-        debugger: {
+        debugger: Object.assign(new EventEmitter(), {
           isAttached: () => true,
           sendCommand: async (method, args) => effects.push([method, args])
-        },
+        }),
         capturePage: async () => ({ toJPEG: (quality) => Buffer.from(`JPEG:${quality}`) })
       }
     }

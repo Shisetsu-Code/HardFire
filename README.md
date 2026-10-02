@@ -38,6 +38,39 @@ Invoke-RestMethod http://127.0.0.1:8765/health
 
 ## Local MCP tools
 
+HardFire 1.5 adds `hardfire_launch({headless:true|false})`, four tab tools,
+`hardfire_snapshot`, `hardfire_find`, `hardfire_inspect_ref`, `hardfire_click_ref`,
+`hardfire_fill_ref`, `hardfire_press` and `hardfire_wait_for`.
+Page actions accept an optional positive `tab_id`, resolved once per call.
+Internal tabs cannot be closed, and recording tabs require saving their HAR first.
+
+Snapshots default to 50 elements / 12 KiB UTF-8, maximum 200 / 64 KiB;
+`max_bytes` accepts 512–65536. Text and attributes are bounded, password values
+are omitted, and cursors expire after 60 seconds or a document/query change.
+References never remap after navigation or removal: search again on `stale_ref`.
+Extraction visits at most 10000 DOM nodes and 32 frames per request, also bounded
+by the response budget. `frames_omitted` and `extraction_limit: "frame_limit"`
+explicitly identify omitted frames; pagination does not bypass that extraction
+limit. Rotated iframe geometry reports `unsupported_frame` for input.
+Frames that cannot be inspected report `unsupported_frame`; canvas may require
+screenshots. Clics use actual browser input and reject hidden, disabled or covered
+elements. Fill supports inputs, textarea and contenteditable without echoing values.
+
+`hardfire_wait_for` accepts `{condition:{type:"text"|"css"|"url"|"load",value:...}}`
+or `{condition:{type:"network_idle"}}`. Timeout is 10 seconds by default,
+1–60000 ms; idle is 500 ms by default. Persistent WebSocket/SSE connections
+are excluded, while periodic HTTP can prevent idle. Cancellation or closing
+the target stops the wait; navigation cancels document conditions.
+
+`HARDFIRE_HEADLESS=0|1` chooses automatic startup visibility, default 1.
+An explicit launch argument overrides it without changing persistent settings.
+If Electron is alive but its HTTP server stopped, the next launcher request
+asks that same instance to recover MCP without replacing tabs.
+
+Run `node scripts/check-structured-browser.js` for the real Electron fixture:
+isolated profile, two tabs, Unicode input, pagination, frames, overlays,
+reference invalidation, waits, hidden screenshots and concurrent HAR recording.
+
 - `hardfire_status`
 - `hardfire_open`
 - `hardfire_click`
@@ -59,7 +92,7 @@ Plugin source:
 plugin/HardFire/
 ```
 
-The plugin launches its bundled Node.js stdio MCP bridge. It announces the 13 tools
+The plugin launches its bundled Node.js stdio MCP bridge. It announces the 25 tools
 without depending on a running browser and forwards browser actions to:
 
 ```text

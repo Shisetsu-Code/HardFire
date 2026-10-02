@@ -32,6 +32,17 @@ test('MCP malformed JSON returns a JSON-RPC parse error and remains available', 
   assert.equal(body.id, null);
   assert.equal((await fetch(server.health)).status, 200);
 });
+test('disconnecting a client cancels its browser wait',async(t)=>{
+  let entered;let cancelled;
+  const started=new Promise(resolve=>{entered=resolve;});
+  const stopped=new Promise(resolve=>{cancelled=resolve;});
+  const server=await start(t,{waitFor:async({signal})=>{entered();await new Promise(resolve=>signal.addEventListener('abort',resolve,{once:true}));cancelled();throw new Error('cancelled');}});
+  const abort=new AbortController();
+  const pending=fetch(server.endpoint,{method:'POST',headers,signal:abort.signal,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'hardfire_wait_for',arguments:{condition:{type:'text',value:'never'}}}})}).catch(()=>{});
+  await started;abort.abort();await pending;
+  await Promise.race([stopped,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('wait was not cancelled')),1000);timer.unref();})]);
+  assert.equal((await fetch(server.health)).status,200);
+});
 
 test('MCP shutdown closes in-flight connections without waiting for the browser action', async (t) => {
   let release;
@@ -98,7 +109,7 @@ test('MCP initializes with the application version and serves tools on subsequen
   assert.equal(initialized.result.serverInfo.version, require('../package.json').version);
   const tools = await post(server, JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list' }));
   const listed = await tools.json();
-  assert.equal(listed.result.tools.length, 13);
+  assert.equal(listed.result.tools.length, 25);
   const call = await post(server, JSON.stringify({
     jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'hardfire_status', arguments: {} }
   }));
@@ -147,3 +158,6 @@ test('MCP closes per-request resources when connection setup fails', async (t) =
     StreamableHTTPServerTransport.prototype.close = originalTransportClose;
   }
 });
+
+
+

@@ -34,11 +34,12 @@ function parseResponse(body, contentType, id) {
 async function callTool(message) {
   const name = message.params?.name;
   if (!tools.some((tool) => tool.name === name)) return toolError('Unknown HardFire tool: ' + name);
+  if (name === 'hardfire_launch' && typeof message.params?.arguments?.headless !== 'boolean') return toolError('headless must be boolean');
   const abort = new AbortController();
   requests.set(message.id, abort);
   let responded = false;
   try {
-    await ensureBrowser();
+    await ensureBrowser(name === 'hardfire_launch' ? {headless:message.params.arguments.headless} : {});
     abort.signal.throwIfAborted();
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -67,7 +68,7 @@ async function callTool(message) {
     // Discovery belongs to this installed plugin. Browser availability is separate.
     if (name === 'hardfire_status') {
       return { content: [{ type: 'text', text: JSON.stringify({
-        installed: true, connected: false, endpoint,
+        installed: true, connected: false, endpoint,plugin_version:version,tools_available:tools.length,
         error: 'HardFire browser unavailable: ' + reason,
         next_action: 'Check HARDFIRE_APP_PATH or start HardFire manually, then retry.'
       }) }] };
@@ -89,7 +90,7 @@ async function handle(message) {
   }
   if (message.method === 'initialize') {
     if (protocols.includes(message.params?.protocolVersion)) protocolVersion = message.params.protocolVersion;
-    reply(message.id, { protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'HardFire', version } });
+    reply(message.id, { protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'HardFire', version },instructions:'Local HardFire browser. Call hardfire_launch with headless=true or false to choose visibility. Tools run on this PC; loading the skill in another host does not expose this MCP.' });
   } else if (message.method === 'ping') {
     reply(message.id, {});
   } else if (message.method === 'tools/list') {

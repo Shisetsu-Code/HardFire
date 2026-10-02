@@ -16,26 +16,27 @@ function createLauncher(endpoint) {
       return res.ok && (await res.json()).service === 'hardfire-local-mcp';
     } catch { return false; }
   }
-  function command() {
+  function command(headless) {
+    const modeArgs = [headless ? '--hardfire-hidden' : '--hardfire-visible'];
     const candidates = process.env.HARDFIRE_APP_PATH ? [process.env.HARDFIRE_APP_PATH] : [
       path.resolve(__dirname, '../../..'),
       ...(process.platform === 'win32' ? ['C:\\HardFire', path.join(process.env.LOCALAPPDATA || '', 'Programs/HardFire/HardFire.exe')] : [])
     ];
     for (const candidate of candidates) {
       if (!fs.existsSync(candidate)) continue;
-      if (fs.statSync(candidate).isFile()) return { executable: candidate, args: ['--hardfire-hidden'], cwd: path.dirname(candidate) };
+      if (fs.statSync(candidate).isFile()) return { executable: candidate, args: modeArgs, cwd: path.dirname(candidate) };
       const manifest = path.join(candidate, 'package.json');
       if (!fs.existsSync(manifest) || JSON.parse(fs.readFileSync(manifest, 'utf8')).name !== 'hardfire') continue;
       const electronRoot = path.join(candidate, 'node_modules/electron');
       const executable = path.resolve(electronRoot, 'dist', fs.readFileSync(path.join(electronRoot, 'path.txt'), 'utf8').trim());
-      return { executable, args: [candidate, '--hardfire-hidden'], cwd: candidate };
+      return { executable, args: [candidate, ...modeArgs], cwd: candidate };
     }
     throw new Error('HardFire installation not found. Set HARDFIRE_APP_PATH to its folder or executable.');
   }
-  async function start() {
+  async function start(headless) {
     if (await ready()) return;
-    const { executable, args, cwd } = command();
-    const env = { ...process.env, HARDFIRE_MCP_PORT: url.port || '80' };
+    const { executable, args, cwd } = command(headless);
+    const env = { ...process.env, HARDFIRE_MCP_PORT: url.port || '80', HARDFIRE_HEADLESS: headless ? '1' : '0' };
     delete env.ELECTRON_RUN_AS_NODE;
     const child = spawn(executable, args, { cwd, env, windowsHide:true, detached:true, stdio:'ignore' });
     let failed;
@@ -50,9 +51,10 @@ function createLauncher(endpoint) {
     }
     throw new Error('HardFire did not become ready within 30 seconds.');
   }
-  return async function ensureBrowser() {
+  return async function ensureBrowser({headless = process.env.HARDFIRE_HEADLESS !== '0'} = {}) {
+    if (typeof headless !== 'boolean') throw new Error('headless must be boolean');
     if (!enabled) return;
-    if (!starting) starting = start().finally(() => { starting = null; });
+    if (!starting) starting = start(headless).finally(() => { starting = null; });
     await starting;
   };
 }

@@ -35,10 +35,10 @@ test('installed plugin advertises all tools even when the browser is closed', as
   const connected = await client(t, await unavailableEndpoint());
   const listed = await connected.listTools();
   assert.deepEqual(listed.tools.map((tool) => tool.name).sort(), [
-    'hardfire_browser', 'hardfire_click', 'hardfire_click_relative', 'hardfire_network_clear',
-    'hardfire_network_events', 'hardfire_open', 'hardfire_record_save',
-    'hardfire_record_start', 'hardfire_screenshot', 'hardfire_sequence',
-    'hardfire_status', 'hardfire_trigger_and_capture', 'hardfire_wait'
+    'hardfire_browser', 'hardfire_click', 'hardfire_click_ref', 'hardfire_click_relative', 'hardfire_fill_ref', 'hardfire_find', 'hardfire_inspect_ref', 'hardfire_launch', 'hardfire_network_clear',
+    'hardfire_network_events', 'hardfire_open', 'hardfire_press', 'hardfire_record_save',
+    'hardfire_record_start', 'hardfire_screenshot', 'hardfire_sequence', 'hardfire_snapshot',
+    'hardfire_status', 'hardfire_tab_activate', 'hardfire_tab_close', 'hardfire_tab_new', 'hardfire_tabs', 'hardfire_trigger_and_capture', 'hardfire_wait', 'hardfire_wait_for'
   ]);
   const result = await connected.callTool({ name: 'hardfire_status', arguments: {} });
   assert.equal(result.isError, undefined);
@@ -84,8 +84,40 @@ test('offline browser actions return a tool error rather than losing the install
   const result = await connected.callTool({ name: 'hardfire_open', arguments: { url: 'https://example.test/' } });
   assert.equal(result.isError, true);
   assert.match(result.content[0].text, /HardFire/);
-  assert.equal((await connected.listTools()).tools.length, 13);
+  assert.equal((await connected.listTools()).tools.length, 25);
 });
+
+for (const headless of [true, false]) {
+  test(`explicit launch headless=${headless} overrides startup preference`, async (t) => {
+    const fs = require('node:fs/promises');
+    const os = require('node:os');
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hardfire-mode-'));
+    const endpoint = await unavailableEndpoint();
+    await fs.mkdir(path.join(root, 'node_modules/electron'), { recursive: true });
+    await fs.writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'hardfire', main: 'index.js' }));
+    await fs.writeFile(path.join(root, 'node_modules/electron/path.txt'), process.execPath);
+    await fs.writeFile(path.join(root, 'index.js'), `
+      const { startLocalMcp } = require(${JSON.stringify(path.join(__dirname, '../src/local-mcp'))});
+      let visible = !process.argv.includes('--hardfire-hidden');
+      const initialVisible = visible;
+      startLocalMcp({ status: async () => ({connected:true, visible, initialVisible, pid:process.pid}),
+        launch: async (headless) => { visible = !headless; return {visible, headless, initialVisible, pid:process.pid}; }
+      }, {port:${new URL(endpoint).port}});
+    `);
+    let pid;
+    t.after(async () => { if (pid) { try { process.kill(pid); } catch {} } await fs.rm(root, {recursive:true,force:true,maxRetries:10,retryDelay:100}); });
+    const connected = await client(t, endpoint, {HARDFIRE_APP_PATH:root, HARDFIRE_HEADLESS:headless ? '0':'1'});
+    const invalid = await connected.callTool({name:'hardfire_launch',arguments:{headless:'false'}});
+    assert.equal(invalid.isError, true);
+    await assert.rejects(fetch(new URL('/health', endpoint)));
+    const result = await connected.callTool({name:'hardfire_launch',arguments:{headless}});
+    const state = JSON.parse(result.content[0].text);
+    pid = state.pid;
+    assert.equal(state.initialVisible, !headless);
+    assert.equal(state.visible, !headless);
+    assert.equal(state.headless, headless);
+  });
+}
 
 test('normal secondary-instance exit waits for the primary browser to become ready', async (t) => {
   const fs = require('node:fs/promises');
@@ -139,5 +171,9 @@ test('plugin relays live calls and its bundled tool schemas match the HTTP serve
   await server.stop();
   const offline = await connected.callTool({ name: 'hardfire_status', arguments: {} });
   assert.equal(JSON.parse(offline.content[0].text).connected, false);
-  assert.equal((await connected.listTools()).tools.length, 13);
+  assert.equal((await connected.listTools()).tools.length, 25);
 });
+
+
+
+

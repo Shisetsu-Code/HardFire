@@ -47,6 +47,502 @@
     }
   },
   {
+    "name": "hardfire_launch",
+    "description": "Start or reuse HardFire. Choose headless=true for an invisible browser or false to show it.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "headless": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "headless"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_tabs",
+    "description": "List HardFire tabs, distinguishing internal tabs from game tabs.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {}
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_wait_for",
+    "description": "Wait for one browser condition with a bounded timeout. Persistent WebSockets and SSE do not block HTTP idle.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "condition": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "text"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "css"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "url"
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "load"
+                },
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "interactive",
+                    "complete"
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "value"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "network_idle"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        "timeout_ms": {
+          "default": 10000,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "idle_ms": {
+          "default": 500,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "condition"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_click_ref",
+    "description": "Send a real browser click to a current, visible, enabled and uncovered element.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "ref"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_fill_ref",
+    "description": "Replace editable text using browser input. Does not return the entered value.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "ref",
+        "value"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_press",
+    "description": "Send a key or combination to the page or optional element reference. Navigation uses hardfire_open.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "ref": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "key"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_snapshot",
+    "description": "Read bounded page controls and text with stable element references. Canvas may require screenshots.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "limit": {
+          "default": 50,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "max_bytes": {
+          "default": 12288,
+          "type": "integer",
+          "minimum": 512,
+          "maximum": 65536
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_find",
+    "description": "Find elements using all supplied filters. Returns matches without choosing or clicking one.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "limit": {
+          "default": 50,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "max_bytes": {
+          "default": 12288,
+          "type": "integer",
+          "minimum": 512,
+          "maximum": 65536
+        },
+        "cursor": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "css": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "placeholder": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "visible": {
+          "default": true,
+          "type": "boolean"
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_inspect_ref",
+    "description": "Inspect one current reference with bounded attributes, parent and direct children.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "max_bytes": {
+          "default": 12288,
+          "type": "integer",
+          "minimum": 512,
+          "maximum": 65536
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "ref"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_tab_new",
+    "description": "Create a game tab, optionally without changing selection.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "activate": {
+          "default": true,
+          "type": "boolean"
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_tab_activate",
+    "description": "Select an existing game tab.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "tab_id"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
+    "name": "hardfire_tab_close",
+    "description": "Close a game tab. Save an active HAR recording first.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "tab_id"
+      ]
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "execution": {
+      "taskSupport": "forbidden"
+    }
+  },
+  {
     "name": "hardfire_open",
     "description": "Use HardFire only: open an HTTP or HTTPS URL in the active local HardFire browser tab.",
     "inputSchema": {
@@ -56,6 +552,11 @@
         "url": {
           "type": "string",
           "format": "uri"
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -86,6 +587,11 @@
         "y": {
           "type": "number",
           "minimum": 0
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -119,6 +625,11 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -148,6 +659,11 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 60000
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       }
     },
@@ -173,6 +689,11 @@
           "type": "integer",
           "minimum": 20,
           "maximum": 90
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       }
     },
@@ -192,7 +713,13 @@
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "properties": {}
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
     },
     "annotations": {
       "readOnlyHint": true,
@@ -210,7 +737,13 @@
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "properties": {}
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
     },
     "annotations": {
       "readOnlyHint": false,
@@ -228,7 +761,13 @@
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "properties": {}
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
     },
     "annotations": {
       "readOnlyHint": false,
@@ -246,7 +785,13 @@
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "properties": {}
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
     },
     "annotations": {
       "readOnlyHint": false,
@@ -293,6 +838,11 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 30000
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       }
     },
@@ -334,6 +884,11 @@
               "action"
             ]
           }
+        },
+        "tab_id": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [

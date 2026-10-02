@@ -17,6 +17,17 @@ Call hardfire_status first when the state is uncertain. Browser tool calls autom
 
 ## Tools
 
+- hardfire_launch: choose headless true for invisible or false for visible. Reuse the existing browser; never close its tabs to switch modes. HARDFIRE_HEADLESS=0|1 configures automatic startup, default 1. An explicit launch argument overrides it for that call.
+- hardfire_tabs, hardfire_tab_new, hardfire_tab_activate, hardfire_tab_close: list and manage game tabs. Internal tabs are protected. Save an active HAR before closing its tab.
+- hardfire_snapshot, hardfire_find, hardfire_inspect_ref: read bounded page elements and frames. Prefer these over guessing coordinates for DOM controls. Combine filters to identify the intended element; never choose arbitrarily among ambiguous matches.
+- hardfire_click_ref, hardfire_fill_ref, hardfire_press: use current references and browser input. References belong to their tab/frame/document. On stale_ref obtain a fresh snapshot or search; do not silently substitute a similar element. For covered or disabled controls report not_actionable. Navigation uses hardfire_open, not Control+L.
+- hardfire_wait_for: wait for one text, CSS, URL, load or network_idle condition. Default timeout 10 seconds, maximum 60; HTTP idle defaults to 500 ms and excludes WebSockets/SSE. Periodic HTTP may prevent idle; prefer an element condition when appropriate.
+
+Pass optional tab_id on page actions to preserve the target. Without it the active game tab is resolved at the start of the call. Explicit invalid IDs never fall back to another tab. A sequence keeps its destination despite selection changes. A tab_new with activate false preserves selection.
+
+Snapshots default to 50 elements and 12 KiB, maximum 200 and 64 KiB. Continue using next_cursor with the same query; a stale_cursor requires a fresh request. Password values are omitted. Check frames and truncation indicators. Canvas controls may require a screenshot and coordinate click; an unsupported frame is not a complete view of the page.
+When frames_omitted is positive, extraction_limit explains the frame limit; the snapshot is partial even if elements is empty. Input into rotated frames may return unsupported_frame rather than risk clicking the wrong geometry.
+
 - hardfire_status: read the browser state without navigating.
 - hardfire_browser: use mode visible to show the window or hidden to hide it, preserving tabs and session. Keep it hidden unless the user wants a visible window. Hidden mode still uses Electron in the local desktop session.
 - hardfire_open: open an HTTP or HTTPS URL.
