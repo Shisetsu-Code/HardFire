@@ -1,0 +1,23 @@
+{
+  "name": "hardfire-local",
+  "interface": {
+    "displayName": "HardFire Local"
+  },
+  "plugins": [
+    {
+      "name": "hardfire",
+      "source": {
+        "source": "local",
+        "path": "./plugin/HardFire"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools",
+      "interface": {
+        "displayName": "HardFire"
+      }
+    }
+  ]
+}
