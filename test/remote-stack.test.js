@@ -27,3 +27,23 @@ test('remote agent builds the HardFire WSS endpoint with its own agent id', () =
     'wss://control.example/ws?agent_id=hardfire'
   );
 });
+
+
+test('controller accepts namespaced HardFire actions from the remote MCP', async () => {
+  const { HardFireController } = require('../src/hardfire-controller');
+  const controller = new HardFireController({});
+  controller.networkEvents = () => ({ events: ['ok'] });
+  controller.networkClear = () => ({ cleared: true });
+  controller.recordStart = async () => ({ recording: true });
+  controller.recordSave = async () => ({ saved: true });
+  controller.sequence = async (steps) => ({ steps });
+
+  assert.deepEqual(await controller.execute('hardfire_network_events'), { events: ['ok'] });
+  assert.deepEqual(await controller.execute('hardfire_network_clear'), { cleared: true });
+  assert.deepEqual(await controller.execute('hardfire_record_start'), { recording: true });
+  assert.deepEqual(await controller.execute('hardfire_record_save'), { saved: true });
+  assert.deepEqual(
+    await controller.execute('hardfire_sequence', { steps: [{ action: 'status' }] }),
+    { steps: [{ action: 'status' }] }
+  );
+});
