@@ -275,7 +275,7 @@ function getMcpState() {
     remote: remoteAgent?.state?.() || {
       enabled: false,
       connected: false,
-      agentId: process.env.FIRETRACE_AGENT_ID || 'firetrace',
+      agentId: process.env.HARDFIRE_AGENT_ID || 'hardfire',
       baseUrl: '',
       error: ''
     }
