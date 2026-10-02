@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hardfire",
+  "version": "1.1.0",
+  "description": "Operate the local HardFire browser and inspect HTTP, HAR and WebSocket traffic.",
+  "author": {
+    "name": "Shisetsu-Code",
+    "url": "https://github.com/Shisetsu-Code"
+  },
+  "homepage": "https://github.com/Shisetsu-Code/HardFire",
+  "repository": "https://github.com/Shisetsu-Code/HardFire",
+  "keywords": [
+    "browser",
+    "automation",
+    "har",
+    "websocket",
+    "network",
+    "hardfire"
+  ]
+}
