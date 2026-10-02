@@ -5,13 +5,9 @@ const el = (id) => document.getElementById(id);
 async function refresh() {
   const state = await window.hardFireMcp.state();
   const local = state?.local || {};
-  const remote = state?.remote || {};
 
   el('endpoint').textContent = local.endpoint || 'http://127.0.0.1:8765/mcp';
   el('localStatus').textContent = local.listening ? 'LISTENING' : (local.error || 'OFFLINE');
-  el('remoteStatus').textContent = remote.connected ? 'CONNECTED' : (remote.enabled ? (remote.error || 'DISCONNECTED') : 'NOT CONFIGURED');
-  el('agent').textContent = remote.agentId || 'hardfire';
-  el('remoteUrl').textContent = remote.baseUrl || '—';
 
   const config = {
     mcpServers: {

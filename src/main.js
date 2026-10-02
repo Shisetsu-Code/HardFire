@@ -22,7 +22,6 @@ const { parseTargets } = require('./target-import');
 const { HarArchiveManager } = require('./har-archive');
 const { configureAutoUpdater } = require('./update-manager');
 const { HardFireController } = require('./hardfire-controller');
-const { RemoteAgent } = require('./remote-agent');
 const { startLocalMcp } = require('./local-mcp');
 
 const TOOLBAR_HEIGHT = 68;
@@ -55,7 +54,6 @@ let harArchive = null;
 let importLoopPromise = null;
 let updateManager = null;
 let hardFireController = null;
-let remoteAgent = null;
 let localMcp = null;
 
 const tabs = new Map();
@@ -270,13 +268,6 @@ function getMcpState() {
       host: '127.0.0.1',
       port: Number(process.env.HARDFIRE_MCP_PORT || 8765),
       endpoint: `http://127.0.0.1:${Number(process.env.HARDFIRE_MCP_PORT || 8765)}/mcp`,
-      error: ''
-    },
-    remote: remoteAgent?.state?.() || {
-      enabled: false,
-      connected: false,
-      agentId: process.env.HARDFIRE_AGENT_ID || 'hardfire',
-      baseUrl: '',
       error: ''
     }
   };
@@ -1951,12 +1942,6 @@ app.whenReady().then(async () => {
     console.warn('[HardFire] Local MCP failed:', error?.message || error);
   }
 
-  remoteAgent = new RemoteAgent(
-    hardFireController,
-    () => scheduleState()
-  );
-  remoteAgent.start();
-
   updateManager = configureAutoUpdater(
     () => mainWindow
   );
@@ -1974,7 +1959,6 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   updateManager?.stop?.();
-  remoteAgent?.stop?.();
   if (localMcp?.stop) {
     Promise.resolve(localMcp.stop()).catch(() => {});
   }
