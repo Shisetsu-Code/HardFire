@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "hardfire",
-  "version": "1.4.1",
-  "description": "Operate HardFire on the user's PC, using the existing callable Firetrace app as a compatibility transport and retaining HardFire's local MCP.",
+  "version": "1.4.2",
+  "description": "Operate the local HardFire browser on the user's PC through its localhost MCP.",
   "author": {
     "name": "Shisetsu-Code",
     "url": "https://github.com/Shisetsu-Code"
@@ -21,8 +21,8 @@
     "com.openai": {
       "interface": {
         "displayName": "HardFire",
-        "shortDescription": "Control remoto de HardFire",
-        "longDescription": "Controla HardFire en tu PC. Para acciones callable compatibles usa la App Firetrace existente como transporte; HardFire sigue siendo el navegador/ejecutor local y conserva su MCP local.",
+        "shortDescription": "Control local de HardFire",
+        "longDescription": "Controla HardFire en tu PC mediante su MCP local en 127.0.0.1. No usa Firetrace ni un transporte remoto.",
         "developerName": "Shisetsu-Code",
         "category": "Developer Tools",
         "capabilities": [
@@ -34,8 +34,7 @@
           "Usa HardFire para revisar la pestaña local actual.",
           "Usa HardFire para grabar y guardar el HAR de las próximas tiradas."
         ]
-      },
-      "apps": "./.app.json"
+      }
     }
   }
 }
