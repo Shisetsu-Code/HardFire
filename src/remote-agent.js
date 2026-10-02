@@ -31,9 +31,9 @@ class RemoteAgent {
   constructor(controller, onUpdate = () => {}) {
     this.controller = controller;
     this.onUpdate = onUpdate;
-    this.baseUrl = persistedEnv('FIRETRACE_CONTROL_URL') || persistedEnv('CF_CONTROL_URL');
-    this.token = persistedEnv('FIRETRACE_CONTROL_TOKEN') || persistedEnv('CF_CONTROL_TOKEN');
-    this.agentId = persistedEnv('FIRETRACE_AGENT_ID') || 'firetrace';
+    this.baseUrl = persistedEnv('HARDFIRE_CONTROL_URL') || persistedEnv('CF_CONTROL_URL') || persistedEnv('FIRETRACE_CONTROL_URL');
+    this.token = persistedEnv('HARDFIRE_CONTROL_TOKEN') || persistedEnv('CF_CONTROL_TOKEN') || persistedEnv('FIRETRACE_CONTROL_TOKEN');
+    this.agentId = persistedEnv('HARDFIRE_AGENT_ID') || 'hardfire';
     this.socket = null;
     this.stopped = false;
     this.connected = false;
@@ -176,13 +176,13 @@ class RemoteAgent {
       this.onUpdate();
       this._sendJson({
         type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000,
-        version: '1.0.0', transport: 'hardfire-cloudflare-wss',
+        version: '1.2.0', transport: 'hardfire-cloudflare-wss',
         backend: 'hard-browser-electron-cdp'
       });
       await this._sendState();
       if (this.heartbeat) clearInterval(this.heartbeat);
       this.heartbeat = setInterval(async () => {
-        this._sendJson({ type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000, version: '1.0.0', transport: 'hardfire-cloudflare-wss' });
+        this._sendJson({ type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000, version: '1.2.0', transport: 'hardfire-cloudflare-wss' });
         await this._sendState();
       }, 10000);
     });
