@@ -7,6 +7,47 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function validateNumber(value, name, min, max = Infinity, integer = false) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+    throw new Error(`${name} must be ${integer ? 'an integer' : 'a finite number'} between ${min} and ${max}`);
+  }
+}
+
+function validateArgs(action, args) {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) {
+    throw new Error('action args must be an object');
+  }
+  if (action === 'open') {
+    let url;
+    try { if (typeof args.url === 'string') url = new URL(args.url); } catch {}
+    if (!url || !['http:', 'https:'].includes(url.protocol)) {
+      throw new Error('url must be an absolute HTTP or HTTPS URL');
+    }
+  } else if (action === 'click') {
+    validateNumber(args.x, 'x', 0);
+    validateNumber(args.y, 'y', 0);
+  } else if (action === 'click_relative') {
+    validateNumber(args.rx, 'rx', 0, 1);
+    validateNumber(args.ry, 'ry', 0, 1);
+  } else if (action === 'wait') {
+    validateNumber(args.ms === undefined ? 1000 : args.ms, 'ms', 0, 60000, true);
+  } else if (action === 'screenshot') {
+    validateNumber(args.quality === undefined ? 65 : args.quality, 'quality', 20, 90, true);
+  } else if (action === 'trigger_and_capture') {
+    const absolute = args.x !== undefined || args.y !== undefined;
+    const relative = args.rx !== undefined || args.ry !== undefined;
+    if (!absolute && !relative) throw new Error('provide x/y or rx/ry');
+    if (absolute) validateArgs('click', args);
+    if (relative) validateArgs('click_relative', args);
+    validateNumber(args.wait_ms === undefined ? 2500 : args.wait_ms, 'wait_ms', 0, 30000, true);
+    if (args.url_contains !== undefined && (typeof args.url_contains !== 'string' || args.url_contains.length > 2000)) {
+      throw new Error('url_contains must be a string with at most 2000 characters');
+    }
+  } else if (!['record_start', 'record_save', 'status', 'network_clear', 'network_events', 'sequence'].includes(action)) {
+    throw new Error(`unsupported action: ${action}`);
+  }
+}
+
 class HardFireController {
   constructor(options) {
     this.getActiveTab = options.getActiveTab;
@@ -18,9 +59,9 @@ class HardFireController {
     this.lastCapture = [];
   }
 
-  _tab() {
+  _tab(create = true) {
     let tab = this.getActiveTab?.();
-    if (!tab || tab.kind !== 'game') {
+    if ((!tab || tab.kind !== 'game') && create) {
       tab = this.createTab?.('about:blank');
     }
     if (!tab || tab.kind !== 'game') {
@@ -43,7 +84,14 @@ class HardFireController {
   }
 
   async status() {
-    const tab = this._tab();
+    const tab = this.getActiveTab?.();
+    if (!tab || tab.kind !== 'game' || !tab.view?.webContents || tab.view.webContents.isDestroyed()) {
+      return {
+        backend: 'hard-browser-electron-cdp', connected: false, tab_id: null,
+        url: '', title: '', viewport: { width: 0, height: 0 },
+        recording: false, speed: 1, muted: false, ws: 0
+      };
+    }
     const wc = this._wc(tab);
     let bounds = { width: 0, height: 0 };
     try { bounds = tab.view.getBounds(); } catch {}
@@ -62,6 +110,7 @@ class HardFireController {
   }
 
   async open(url) {
+    validateArgs('open', { url });
     const tab = this._tab();
     const wc = this._wc(tab);
     await wc.loadURL(String(url));
@@ -69,18 +118,16 @@ class HardFireController {
   }
 
   async wait(ms = 1000) {
-    const value = Math.max(0, Math.min(Number(ms) || 0, 60000));
-    await delay(value);
-    return { waited_ms: value };
+    validateArgs('wait', { ms });
+    await delay(ms);
+    return { waited_ms: ms };
   }
 
   async click(x, y) {
+    validateArgs('click', { x, y });
     const tab = this._tab();
-    const px = Number(x);
-    const py = Number(y);
-    if (!Number.isFinite(px) || !Number.isFinite(py)) {
-      throw new Error('x and y must be finite numbers');
-    }
+    const px = x;
+    const py = y;
     await this._send(tab, 'Input.dispatchMouseEvent', {
       type: 'mousePressed', x: px, y: py, button: 'left', clickCount: 1
     });
@@ -91,24 +138,23 @@ class HardFireController {
   }
 
   async clickRelative(rx, ry) {
+    validateArgs('click_relative', { rx, ry });
     const tab = this._tab();
     const bounds = tab.view.getBounds();
-    const nrx = Number(rx);
-    const nry = Number(ry);
-    if (!Number.isFinite(nrx) || !Number.isFinite(nry) || nrx < 0 || nrx > 1 || nry < 0 || nry > 1) {
-      throw new Error('rx and ry must be between 0 and 1');
+    if (!(bounds.width > 0 && bounds.height > 0)) {
+      throw new Error('Browser tab viewport is empty');
     }
-    const x = Math.max(0, bounds.width * nrx);
-    const y = Math.max(0, bounds.height * nry);
+    const x = Math.min(bounds.width - 1, bounds.width * rx);
+    const y = Math.min(bounds.height - 1, bounds.height * ry);
     await this.click(x, y);
     return { x, y, width: bounds.width, height: bounds.height };
   }
 
   async screenshot(quality = 65) {
-    const wc = this._wc();
+    validateArgs('screenshot', { quality });
+    const wc = this._wc(this._tab(false));
     const image = await wc.capturePage();
-    const q = Math.max(20, Math.min(Number(quality) || 65, 90));
-    return image.toJPEG(q);
+    return image.toJPEG(quality);
   }
 
   networkClear() {
@@ -186,14 +232,16 @@ class HardFireController {
     };
   }
 
-  async triggerAndCapture({
-    url_contains = 'fn=play',
-    x = null,
-    y = null,
-    rx = null,
-    ry = null,
-    wait_ms = 2500
-  } = {}) {
+  async triggerAndCapture(args = {}) {
+    validateArgs('trigger_and_capture', args);
+    const {
+      url_contains = 'fn=play',
+      x = null,
+      y = null,
+      rx = null,
+      ry = null,
+      wait_ms = 2500
+    } = args;
     const tab = this._tab();
     const wc = this._wc(tab);
     if (tab.recorder?.recording) {
@@ -210,14 +258,14 @@ class HardFireController {
     await recorder.start();
     try {
       if (x !== null && y !== null) {
-        await this.click(Number(x), Number(y));
+        await this.click(x, y);
       } else if (rx !== null && ry !== null) {
-        await this.clickRelative(Number(rx), Number(ry));
+        await this.clickRelative(rx, ry);
       } else {
         throw new Error('provide x/y or rx/ry');
       }
 
-      await delay(Math.max(0, Math.min(Number(wait_ms) || 0, 30000)));
+      await delay(wait_ms);
       const har = await recorder.stop();
       const filter = String(url_contains || '');
       const entries = har.log?.entries || [];
@@ -242,6 +290,15 @@ class HardFireController {
     if (!Array.isArray(steps) || steps.length > 50) {
       throw new Error('sequence steps must be an array with at most 50 items');
     }
+    for (const step of steps) {
+      if (!step || typeof step !== 'object' || Array.isArray(step) || typeof step.action !== 'string' || step.action === 'sequence') {
+        throw new Error('each sequence step must have a supported action');
+      }
+      validateArgs(step.action, step.args === undefined ? {} : step.args);
+      if (['network_clear', 'network_events'].includes(step.action)) {
+        throw new Error(`unsupported sequence action: ${step.action}`);
+      }
+    }
     const results = [];
     let screenshot = null;
 
@@ -252,7 +309,7 @@ class HardFireController {
       let data;
       if (action === 'click') data = await this.click(args.x, args.y);
       else if (action === 'click_relative') data = await this.clickRelative(args.rx, args.ry);
-      else if (action === 'wait') data = await this.wait(args.ms ?? 500);
+      else if (action === 'wait') data = await this.wait(args.ms === undefined ? 500 : args.ms);
       else if (action === 'open') data = await this.open(args.url);
       else if (action === 'trigger_and_capture') data = await this.triggerAndCapture(args);
       else if (action === 'record_start') data = await this.recordStart();
@@ -272,6 +329,7 @@ class HardFireController {
   }
 
   async execute(action, args = {}) {
+    if (typeof action !== 'string') throw new Error('action must be a string');
     const aliases = {
       browser_status: 'status',
       browser_open: 'open',
@@ -284,6 +342,7 @@ class HardFireController {
     const name = aliased.startsWith('hardfire_')
       ? aliased.slice('hardfire_'.length)
       : aliased;
+    validateArgs(name, args);
     if (name === 'status') return this.status();
     if (name === 'open') return this.open(args.url);
     if (name === 'wait') return this.wait(args.ms);
@@ -291,14 +350,14 @@ class HardFireController {
     if (name === 'click_relative') return this.clickRelative(args.rx, args.ry);
     if (name === 'screenshot') {
       const bytes = await this.screenshot(args.quality);
-      return { bytes, quality: Math.max(20, Math.min(Number(args.quality) || 65, 90)) };
+      return { bytes, quality: args.quality === undefined ? 65 : args.quality };
     }
     if (name === 'network_clear') return this.networkClear();
     if (name === 'network_events') return this.networkEvents();
     if (name === 'record_start' || name === 'hardfire_record_start') return this.recordStart();
     if (name === 'record_save' || name === 'hardfire_record_save') return this.recordSave();
     if (name === 'trigger_and_capture') return this.triggerAndCapture(args);
-    if (name === 'sequence') return this.sequence(args.steps || []);
+    if (name === 'sequence') return this.sequence(args.steps === undefined ? [] : args.steps);
     throw new Error(`unknown action: ${action}`);
   }
 }

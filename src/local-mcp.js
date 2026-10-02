@@ -1,6 +1,7 @@
 'use strict';
 
 const http = require('node:http');
+const { version } = require('../package.json');
 
 function json(res, status, body) {
   const payload = Buffer.from(JSON.stringify(body));
@@ -14,20 +15,13 @@ function json(res, status, body) {
   res.end(payload);
 }
 
-async function readJson(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  if (!chunks.length) return undefined;
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
-}
-
 async function createProtocolServer(controller) {
   const [{ McpServer }, { z }] = await Promise.all([
     import('@modelcontextprotocol/sdk/server/mcp.js'),
     import('zod')
   ]);
 
-  const server = new McpServer({ name: 'HardFire', version: '1.3.1' });
+  const server = new McpServer({ name: 'HardFire', version });
   const text = (value) => ({
     content: [{ type: 'text', text: JSON.stringify(value) }]
   });
@@ -134,11 +128,25 @@ async function createProtocolServer(controller) {
 
 async function startLocalMcp(controller, options = {}) {
   const host = options.host || '127.0.0.1';
-  const port = Number(options.port || process.env.HARDFIRE_MCP_PORT || 8765);
+  let port = Number(options.port ?? process.env.HARDFIRE_MCP_PORT ?? 8765);
   let listening = false;
   let lastError = '';
+  let stopping = null;
+  const activeRequests = new Set();
 
   const server = http.createServer(async (req, res) => {
+    let protocolServer;
+    let transport;
+    let closing;
+    const cleanup = () => {
+      if (!closing) {
+        closing = Promise.allSettled([
+          Promise.resolve().then(() => protocolServer?.close()),
+          Promise.resolve().then(() => transport?.close())
+        ]).then(() => activeRequests.delete(cleanup));
+      }
+      return closing;
+    };
     try {
       const url = new URL(req.url || '/', `http://${host}:${port}`);
       if (req.method === 'OPTIONS') {
@@ -163,23 +171,24 @@ async function startLocalMcp(controller, options = {}) {
         return;
       }
 
-      const body = await readJson(req);
-      const [{ StreamableHTTPServerTransport }, protocolServer] = await Promise.all([
-        import('@modelcontextprotocol/sdk/server/streamableHttp.js'),
-        createProtocolServer(controller)
-      ]);
-      const transport = new StreamableHTTPServerTransport({
+      const { StreamableHTTPServerTransport } = await import('@modelcontextprotocol/sdk/server/streamableHttp.js');
+      protocolServer = await createProtocolServer(controller);
+      if (res.destroyed) return;
+      transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
         enableJsonResponse: true
       });
+      activeRequests.add(cleanup);
+      res.once('close', () => { void cleanup(); });
       await protocolServer.connect(transport);
-      await transport.handleRequest(req, res, body);
-      try { await transport.close(); } catch {}
-      try { await protocolServer.close(); } catch {}
+      // Let the SDK enforce content types, bounded body reads and JSON-RPC errors.
+      await transport.handleRequest(req, res);
     } catch (error) {
       lastError = error?.message || String(error);
-      if (!res.headersSent) json(res, 500, { error: lastError });
+      if (!res.headersSent && !res.destroyed) json(res, 500, { error: lastError });
       else if (!res.writableEnded) res.end();
+    } finally {
+      await cleanup();
     }
   });
 
@@ -187,6 +196,7 @@ async function startLocalMcp(controller, options = {}) {
     server.once('error', reject);
     server.listen(port, host, () => {
       server.removeListener('error', reject);
+      port = server.address().port;
       listening = true;
       resolve();
     });
@@ -199,8 +209,15 @@ async function startLocalMcp(controller, options = {}) {
       return { listening, host, port, endpoint: `http://${host}:${port}/mcp`, error: lastError };
     },
     stop() {
+      if (stopping) return stopping;
       listening = false;
-      return new Promise((resolve) => server.close(() => resolve()));
+      stopping = (async () => {
+        const closed = new Promise((resolve) => server.close(() => resolve()));
+        server.closeAllConnections();
+        await Promise.allSettled([...activeRequests].map((cleanup) => cleanup()));
+        await closed;
+      })();
+      return stopping;
     }
   };
 }
