@@ -1,88 +1,79 @@
-# Firetrace MCP for ChatGPT
+# HardFire MCP for ChatGPT
 
-Production endpoint: **https://firetrace-mcp.braian-n-l.workers.dev/mcp**
+Production endpoint after deploying this Worker:
 
-Use **OAuth** authentication. Leave the OAuth client ID and secret empty: the
-server supports dynamic client registration and client metadata documents.
-When redirected to Firetrace, enter your separate connection password and
-approve access. Do not enter `CF_CONTROL_TOKEN` in ChatGPT.
+```text
+https://hardfire-mcp.braian-n-l.workers.dev/mcp
+```
 
-The connection password is stored as the `MCP_PASSWORD` Worker secret. The
-initial connection instructions and password are kept locally by the operator,
-outside this public repository.
+This is a separate MCP application from the legacy Firetrace MCP.
+
+## Identity
+
+HardFire uses its own identity end to end:
+
+```text
+MCP server: HardFire
+Cloudflare Worker: hardfire-mcp
+agent_id: hardfire
+OAuth owner: hardfire-owner
+tools: hardfire_*
+```
+
+The old Firetrace app and `agent_id=firetrace` are not used by this Worker.
+
+## Authentication
+
+Use OAuth. Leave OAuth client ID and secret empty so dynamic client registration can be used.
+
+The authorization page says **HardFire**, not Firetrace. The separate connection password is stored as the `MCP_PASSWORD` Worker secret.
+
+Do not put `CF_CONTROL_TOKEN` into ChatGPT.
 
 ## Architecture
 
-ChatGPT → OAuth-protected Firetrace MCP → service binding to
-`shisetsu-browser-control` → WSS agent `firetrace` → local Chrome/CDP.
+```text
+ChatGPT
+  -> OAuth-protected HardFire MCP
+  -> shisetsu-browser-control service binding
+  -> WSS agent hardfire
+  -> local HardFire Electron/CDP browser
+```
 
-This Worker belongs to this repository. It does not deploy or alter the existing
-control Worker. `CONTROL_TOKEN` is used only for the internal service request.
-The existing D1 database and R2 bucket are read to retrieve screenshots by
-command ID, so concurrent requests do not return an unrelated latest image.
-
-Keep `Firetrace-Worker.exe` running on the PC with `CF_CONTROL_URL` and
-`CF_CONTROL_TOKEN` configured. Those values still identify the **control Worker**,
-not the new MCP URL. Chrome/CDP remain on localhost.
+The existing control Worker, D1 database and R2 screenshot bucket are reused, but HardFire has a different agent id and MCP Worker from Firetrace.
 
 ## Tools
 
-- `browser_status`: agent connectivity and browser state.
-- `browser_open`: HTTP(S) navigation.
-- `browser_click`, `browser_click_relative`: pixel or normalized clicks.
-- `browser_wait`: wait up to ten seconds.
-- `browser_screenshot`: return a JPEG content block.
-- `trigger_and_capture`: click and capture matching requests/responses.
-- `network_events`, `network_clear`: backend compatibility commands; the local
-  backend currently captures traffic atomically with `trigger_and_capture`.
-- `command_result`: retrieve a long-running command without repeating it.
+- `hardfire_status`
+- `hardfire_open`
+- `hardfire_click`
+- `hardfire_click_relative`
+- `hardfire_wait`
+- `hardfire_screenshot`
+- `hardfire_network_events`
+- `hardfire_network_clear`
+- `hardfire_trigger_and_capture`
+- `hardfire_command_result`
 
-Click/navigation tools are correctly annotated as actions, not read-only tools.
-If an RPC returns `status: running`, use its ID with `command_result`; do not
-repeat the action. The adapter checks agent liveness before sending a command.
-The existing control plane still owns delivery/queue semantics if the agent
-disconnects during that request.
+## Development
 
-## Development and deployment
-
-Node 22 or newer:
-
-```sh
+```powershell
+cd cloudflare
 npm ci
 npm test
 npm run check
 ```
 
-`npm test` builds the Worker and tests OAuth inside the actual Workers runtime,
-plus MCP protocol/tool behavior and bridge failure handling.
+Deploy with the required secrets:
 
-The checked-in configuration targets the existing owner account. For another
-account, change the Worker/service/database/bucket/KV bindings and `PUBLIC_URL`.
-
-Create an ignored `secrets.json` locally with `CONTROL_TOKEN` and a long random
-`MCP_PASSWORD`, then deploy both secrets atomically with the Worker:
-
-```sh
+```powershell
 npx wrangler deploy --secrets-file secrets.json
 ```
 
-Never commit that file. For local development supply the same values through an
-ignored `.dev.vars` and use suitable local bindings.
+The expected Worker URL is:
 
-`node smoke.mjs` performs a production OAuth/PKCE exchange, rejects a wrong
-password and a missing consent cookie, lists tools, reads `browser_status`,
-refreshes the token and revokes the verification grant. It reads `secrets.json`
-without printing credentials. It does not click or navigate the browser.
+```text
+https://hardfire-mcp.braian-n-l.workers.dev
+```
 
-## ChatGPT setup
-
-Enable developer mode in ChatGPT, create a custom app/plugin, enter the endpoint
-above, choose OAuth, and complete the Firetrace consent page. Then select
-Firetrace in a chat and request `browser_status` first.
-
-An unauthenticated HTTP 401 at `/mcp` is expected: its `WWW-Authenticate` header
-now advertises OAuth discovery. It is not the old control-token-only rejection.
-
-References: [OpenAI connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt),
-[OpenAI authentication](https://developers.openai.com/plugins/build/auth),
-[Cloudflare OAuth provider](https://github.com/cloudflare/workers-oauth-provider).
+After deployment, add a **new HardFire app** in ChatGPT using the HardFire endpoint. Do not reuse the old Firetrace app entry.
