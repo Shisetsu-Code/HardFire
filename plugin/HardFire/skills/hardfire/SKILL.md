@@ -14,7 +14,8 @@ Routing rules:
 - For navigation, use hardfire_open.
 - For one click, use hardfire_click or hardfire_click_relative.
 - Prefer hardfire_click_relative when the instruction is based on the current screenshot and normalized coordinates are sufficient.
-- For HTTP or WebSocket protocol inspection around a click, use hardfire_trigger_and_capture rather than manually combining unrelated tools.
+- For a full manual HAR session, call hardfire_record_start before the user-requested interactions and hardfire_record_save when the capture is complete.
+- For HTTP or WebSocket protocol inspection around a single click, use hardfire_trigger_and_capture rather than manually combining unrelated tools.
 - Use hardfire_network_events to read the most recent atomic capture.
 - Use hardfire_network_clear only when a clean capture buffer is useful.
 - Use hardfire_sequence when several browser actions can be executed deterministically in one ordered operation.
@@ -31,6 +32,8 @@ Available HardFire tools:
 - hardfire_screenshot
 - hardfire_network_events
 - hardfire_network_clear
+- hardfire_record_start
+- hardfire_record_save
 - hardfire_trigger_and_capture
 - hardfire_sequence
 
