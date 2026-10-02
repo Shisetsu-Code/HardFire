@@ -8,13 +8,13 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const pluginRoot = path.join(root, 'plugin', 'HardFire');
 
-test('ChatGPT plugin uses the callable HTTPS MCP while localhost MCP remains in the app', () => {
+test('HardFire keeps its direct localhost MCP while callables come from the app dependency', () => {
   const portable = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'mcp.json'), 'utf8'));
   const compat = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.mcp.json'), 'utf8'));
 
   const expected = {
     type: 'streamable-http',
-    url: 'https://hardfire-mcp.braian-n-l.workers.dev/mcp'
+    url: 'http://127.0.0.1:8765/mcp'
   };
 
   assert.deepEqual(portable.mcpServers.hardfire, expected);
