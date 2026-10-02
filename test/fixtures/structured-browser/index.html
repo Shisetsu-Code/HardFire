@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>HardFire structured fixture</title>
+<style>body{font:18px Arial;background:#183f91;color:white}input,button,textarea{font:18px Arial;margin:5px}.cover{position:relative;width:180px;height:50px}.cover button{position:absolute;inset:0}.overlay{position:absolute;inset:0;background:#222;z-index:2}#editable{background:white;color:black;min-height:35px;width:300px}</style>
+<h1>Structured browser fixture</h1>
+<label for="name">Nombre</label><input id="name" placeholder="Escribe aquí">
+<textarea aria-label="Notas"></textarea><div id="editable" contenteditable="true" role="textbox" aria-label="Editor"></div>
+<input type="password" value="DO_NOT_RETURN_THIS" aria-label="Clave">
+<button id="replace" onclick="this.outerHTML='<button id=replace>Reemplazado</button>'">Reemplazar</button>
+<button id="ready" onclick="document.querySelector('#result').textContent='Clicked successfully';fetch('/ping')">Confirmar</button>
+<input type="submit" value="Save order">
+<button onclick="const r=document.querySelector('iframe').getBoundingClientRect();const o=document.createElement('div');o.id='frame-overlay';o.style.cssText='position:fixed;z-index:99;background:black;left:'+r.x+'px;top:'+r.y+'px;width:'+r.width+'px;height:'+r.height+'px';document.body.append(o)">Cover frame</button>
+<button disabled>Deshabilitado</button><button style="display:none">Oculto</button>
+<div class="cover"><button>Cubierto</button><div class="overlay">Overlay</div></div>
+<p id="result">Esperando</p><p id="events">Events: 0</p>
+<canvas width="180" height="60"></canvas>
+<iframe title="Nested frame" src="/frame"></iframe>
+<iframe title="Cross origin frame" src="CROSS_FRAME_URL"></iframe>
+<script>
+let events=0;document.addEventListener('input',()=>{document.querySelector('#events').textContent='Events: '+(++events)});
+document.addEventListener('change',()=>{document.querySelector('#events').textContent='Changed: '+(++events)});
+document.querySelector('#name').addEventListener('change',e=>{const p=document.createElement('p');p.textContent=e.target.value?'Value observed: '+e.target.value:'Value empty';document.body.append(p)});
+document.querySelector('textarea').addEventListener('focusout',e=>{const p=document.createElement('p');p.textContent='Textarea observed: '+e.target.value;document.body.append(p)});
+document.querySelector('#editable').addEventListener('focusout',e=>{const p=document.createElement('p');p.textContent='Editor observed: '+e.target.textContent;document.body.append(p)});
+const many=document.createElement('div');many.id='many';for(let i=0;i<230;i++){const b=document.createElement('button');b.className='many';b.textContent='Many '+i+' 😀';many.append(b)}document.body.append(many);
+const ctx=document.querySelector('canvas').getContext('2d');ctx.fillStyle='#ffae30';ctx.fillRect(0,0,180,60);
+setTimeout(()=>{const p=document.createElement('p');p.id='late';p.textContent='Late element ready';document.body.append(p)},300);
+new EventSource('/stream');
+</script>

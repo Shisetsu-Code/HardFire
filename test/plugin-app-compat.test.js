@@ -20,13 +20,15 @@ test('HardFire plugin is local-only and does not bind the Firetrace app', () => 
   assert.equal(serialized.includes('firetrace'), false);
 });
 
-test('HardFire plugin keeps the localhost MCP as its only declared MCP transport', () => {
+test('HardFire plugin keeps its local bridge as its only declared MCP transport', () => {
   const portable = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'mcp.json'), 'utf8'));
   const compat = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.mcp.json'), 'utf8'));
 
   const expected = {
-    type: 'streamable-http',
-    url: 'http://127.0.0.1:8765/mcp'
+    type: 'stdio',
+    command: 'node',
+    args: ['${PLUGIN_ROOT}/mcp/bridge.cjs'],
+    cwd: '${PLUGIN_ROOT}'
   };
 
   assert.deepEqual(portable.mcpServers, { hardfire: expected });

@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "hardfire": {
-      "type": "streamable-http",
-      "url": "http://127.0.0.1:8765/mcp"
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${PLUGIN_ROOT}/mcp/bridge.cjs"
+      ],
+      "cwd": "${PLUGIN_ROOT}"
     }
   }
 }

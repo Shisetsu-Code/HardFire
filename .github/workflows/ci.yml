@@ -15,4 +15,17 @@ jobs:
           node-version: 24
       - run: npm install
       - run: npm run check
+      - run: npm run check:chatgpt
       - run: xvfb-run -a ./node_modules/.bin/electron --no-sandbox . --smoke-test
+  chatgpt-mcp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm test

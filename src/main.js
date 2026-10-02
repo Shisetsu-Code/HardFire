@@ -22,7 +22,9 @@ const { parseTargets } = require('./target-import');
 const { HarArchiveManager } = require('./har-archive');
 const { configureAutoUpdater } = require('./update-manager');
 const { HardFireController } = require('./hardfire-controller');
-const { startLocalMcp } = require('./local-mcp');
+const { LocalMcpManager } = require('./local-mcp-manager');
+const { PageConnection } = require('./page-connection');
+const { setBrowserMode } = require('./browser-window-mode');
 
 const TOOLBAR_HEIGHT = 68;
 const PARTITION = 'persist:hardfire';
@@ -58,6 +60,15 @@ let localMcp = null;
 
 const tabs = new Map();
 const smokeTest = process.argv.includes('--smoke-test');
+const headless = process.argv.includes('--hardfire-hidden') ||
+  (!process.argv.includes('--hardfire-visible') && process.env.HARDFIRE_HEADLESS === '1');
+
+const ownsInstance = app.requestSingleInstanceLock();
+if (!ownsInstance) app.quit();
+app.on('second-instance', (_event, argv) => {
+  if (!argv.includes('--hardfire-hidden') && mainWindow) setBrowserMode(mainWindow, 'visible');
+  if (localMcp) void localMcp.ensureRunning().catch(error => console.warn('[HardFire] MCP recovery failed:', error.message));
+});
 
 const importQueue = {
   targets: [],
@@ -619,18 +630,26 @@ function createTab(
       scheduleState
     );
 
+  const pageConnection=PageConnection.for(wc,{sessionsProvider:()=>tab.runtimeController.getSessionIds()});
+
   if (shouldActivate) {
     activateTab(id);
   } else {
     attachBackgroundView(tab);
   }
 
-  // Navigation must never wait for CDP/runtime setup. The preload already
-  // installs the top-frame runtime; CDP attaches to child targets in parallel.
-  runDetached(
-    () => wc.loadURL(tab.url),
-    `load ${tab.url}`
-  );
+  // Observe requests before the initial document can start its own fetches.
+  // Runtime patches and child-target setup still run in parallel.
+  const initialUrl=tab.url;
+  tab.navigationReady=(async()=>{
+    // A new WebContents needs a renderer before CDP can enable Network.
+    await wc.loadURL('about:blank');
+    await pageConnection.startTracking().catch(error=>{
+      console.warn('[HardFire] Network tracking unavailable:',error.message);
+    });
+    if(initialUrl!=='about:blank')await wc.loadURL(initialUrl);
+  })();
+  runDetached(tab.navigationReady,`load ${initialUrl}`);
 
   runDetached(
     () => tab.runtimeController.start(),
@@ -868,7 +887,7 @@ function cycleGameTab(direction = 1) {
   );
 }
 
-async function closeTab(id) {
+async function closeTab(id, {createReplacement=true}={}) {
   const numericId = Number(id);
   const tab = tabs.get(numericId);
 
@@ -907,8 +926,10 @@ async function closeTab(id) {
       activateTab(
         games[Math.max(0, games.length - 1)].id
       );
-    } else {
+    } else if (createReplacement) {
       createTab();
+    } else {
+      activeTabId = null;
     }
   }
 
@@ -1805,6 +1826,7 @@ function registerIpc() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    show: !headless,
     width: 1500,
     height: 920,
     minWidth: 900,
@@ -1824,20 +1846,13 @@ function createWindow() {
   });
 
   mainWindow.setMenuBarVisibility(false);
+  if (headless) setBrowserMode(mainWindow, 'hidden');
 
   mainWindow.webContents
     .setBackgroundThrottling(false);
 
   wireShortcutCapture(
     mainWindow.webContents
-  );
-
-  mainWindow.loadFile(
-    path.join(
-      __dirname,
-      'ui',
-      'index.html'
-    )
   );
 
   mainWindow.on(
@@ -1886,9 +1901,11 @@ function createWindow() {
       }
     }
   );
+  return mainWindow.loadFile(path.join(__dirname, 'ui', 'index.html'));
 }
 
 app.whenReady().then(async () => {
+  if (!ownsInstance) return;
   Menu.setApplicationMenu(null);
   app.setAppUserModelId('com.shisetsu.hardfire');
 
@@ -1923,10 +1940,13 @@ app.whenReady().then(async () => {
   await harArchive.init();
 
   registerIpc();
-  createWindow();
+  await createWindow();
 
   hardFireController = new HardFireController({
+    getBrowserWindow: () => mainWindow,
     getActiveTab: activeTab,
+    listTabs: () => [...tabs.values()],
+    closeTab,
     createTab,
     activateTab,
     networkTap: () => networkTap,
@@ -1937,7 +1957,8 @@ app.whenReady().then(async () => {
   });
 
   try {
-    localMcp = await startLocalMcp(hardFireController);
+    localMcp = new LocalMcpManager(hardFireController);
+    await localMcp.ensureRunning();
   } catch (error) {
     console.warn('[HardFire] Local MCP failed:', error?.message || error);
   }
