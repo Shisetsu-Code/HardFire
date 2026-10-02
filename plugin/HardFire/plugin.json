@@ -16,5 +16,25 @@
     "websocket",
     "network",
     "hardfire"
-  ]
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "HardFire",
+        "shortDescription": "Controla tu navegador local HardFire y captura HAR/WS.",
+        "longDescription": "Usa HardFire en tu PC para navegar, hacer clics, tomar capturas, iniciar y guardar HAR completos y analizar tráfico HTTP y WebSocket.",
+        "developerName": "Shisetsu-Code",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://github.com/Shisetsu-Code/HardFire",
+        "defaultPrompt": [
+          "Usa HardFire para revisar la pestaña local actual.",
+          "Usa HardFire para grabar y guardar el HAR de las próximas tiradas."
+        ]
+      }
+    }
+  }
 }
