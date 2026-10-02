@@ -31,9 +31,18 @@ class RemoteAgent {
   constructor(controller, onUpdate = () => {}) {
     this.controller = controller;
     this.onUpdate = onUpdate;
-    this.baseUrl = persistedEnv('HARDFIRE_CONTROL_URL') || persistedEnv('CF_CONTROL_URL') || persistedEnv('FIRETRACE_CONTROL_URL');
+    const hardfireUrl = persistedEnv('HARDFIRE_CONTROL_URL');
+    const cloudflareUrl = persistedEnv('CF_CONTROL_URL');
+    const firetraceUrl = persistedEnv('FIRETRACE_CONTROL_URL');
+    const explicitHardFireAgentId = persistedEnv('HARDFIRE_AGENT_ID');
+    const legacyFiretraceAgentId = persistedEnv('FIRETRACE_AGENT_ID');
+
+    this.baseUrl = hardfireUrl || cloudflareUrl || firetraceUrl;
     this.token = persistedEnv('HARDFIRE_CONTROL_TOKEN') || persistedEnv('CF_CONTROL_TOKEN') || persistedEnv('FIRETRACE_CONTROL_TOKEN');
-    this.agentId = persistedEnv('HARDFIRE_AGENT_ID') || 'hardfire';
+    this.agentId =
+      explicitHardFireAgentId ||
+      legacyFiretraceAgentId ||
+      (hardfireUrl ? 'hardfire' : (cloudflareUrl || firetraceUrl) ? 'firetrace' : 'hardfire');
     this.socket = null;
     this.stopped = false;
     this.connected = false;
@@ -176,13 +185,13 @@ class RemoteAgent {
       this.onUpdate();
       this._sendJson({
         type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000,
-        version: '1.4.0', transport: 'hardfire-cloudflare-wss',
+        version: '1.4.1', transport: 'hardfire-cloudflare-wss',
         backend: 'hard-browser-electron-cdp'
       });
       await this._sendState();
       if (this.heartbeat) clearInterval(this.heartbeat);
       this.heartbeat = setInterval(async () => {
-        this._sendJson({ type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000, version: '1.4.0', transport: 'hardfire-cloudflare-wss' });
+        this._sendJson({ type: 'hello', agent_id: this.agentId, ts: Date.now() / 1000, version: '1.4.1', transport: 'hardfire-cloudflare-wss' });
         await this._sendState();
       }, 10000);
     });
