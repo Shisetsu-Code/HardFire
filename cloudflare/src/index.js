@@ -11,8 +11,8 @@ export async function passwordMatches(supplied,expected) {
 }
 const defaultHandler={async fetch(request,env) {
   const url=new URL(request.url);
-  if(url.pathname==='/health') return Response.json({ok:true,service:'firetrace-mcp'});
-  if(url.pathname!=='/authorize') return new Response('Firetrace MCP: connect /mcp using OAuth.',{status:404});
+  if(url.pathname==='/health') return Response.json({ok:true,service:'hardfire-mcp'});
+  if(url.pathname!=='/authorize') return new Response('HardFire MCP: connect /mcp using OAuth.',{status:404});
   const oauth=env.OAUTH_PROVIDER;
   try {
     if(request.method==='GET') {
@@ -24,7 +24,7 @@ const defaultHandler={async fetch(request,env) {
       // Form navigations need their real Origin for the POST CSRF check.
       // no-referrer makes browsers send Origin:null even to this same site.
       consent.headers.set('referrer-policy','same-origin');
-      return new Response(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Conectar Firetrace</title><h1>Conectar Firetrace</h1><p>Aplicación: <strong>${escape(details.clientName)}</strong></p><p>Destino de autorización: ${escape(details.redirectHost)}</p><p>${details.clientDomain ? 'Dominio: '+escape(details.clientDomain) : 'El nombre de esta aplicación no está verificado.'}</p><p>Permite ver y controlar el navegador Firetrace, obtener capturas y leer tráfico de red. Los clics pueden enviar formularios o iniciar transacciones.</p><p>Permisos solicitados: ${escape(details.scope.join(', '))}</p><form method="post" action="/authorize"><input type="hidden" name="handle" value="${escape(consent.handle)}"><label>Clave de conexión Firetrace <input name="password" type="password" autocomplete="current-password" required></label><p><button name="decision" value="approve">Autorizar</button> <button name="decision" value="deny" formnovalidate>Cancelar</button></p></form></html>`,{headers:consent.headers});
+      return new Response(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Conectar HardFire</title><h1>Conectar HardFire</h1><p>Aplicación: <strong>${escape(details.clientName)}</strong></p><p>Destino de autorización: ${escape(details.redirectHost)}</p><p>${details.clientDomain ? 'Dominio: '+escape(details.clientDomain) : 'El nombre de esta aplicación no está verificado.'}</p><p>Permite ver y controlar el navegador HardFire, obtener capturas y leer tráfico de red. Los clics pueden enviar formularios o iniciar transacciones.</p><p>Permisos solicitados: ${escape(details.scope.join(', '))}</p><form method="post" action="/authorize"><input type="hidden" name="handle" value="${escape(consent.handle)}"><label>Clave de conexión HardFire <input name="password" type="password" autocomplete="current-password" required></label><p><button name="decision" value="approve">Autorizar</button> <button name="decision" value="deny" formnovalidate>Cancelar</button></p></form></html>`,{headers:consent.headers});
     }
     if(request.method==='POST') {
       if(request.headers.get('origin')!==url.origin) return new Response('Invalid origin',{status:403});
@@ -38,7 +38,7 @@ const defaultHandler={async fetch(request,env) {
       const approved=await oauth.approveConsent(request,handle);
       const scope=approved.request.scope;
       if(!scope.includes('browser:control')) return new Response('browser:control scope required',{status:400});
-      const {redirectTo}=await oauth.completeAuthorization({request:approved.request,userId:'firetrace-owner',metadata:{},scope,props:{agentId:'firetrace'}});
+      const {redirectTo}=await oauth.completeAuthorization({request:approved.request,userId:'hardfire-owner',metadata:{},scope,props:{agentId:'hardfire'}});
       approved.headers.set('location',redirectTo);
       return new Response(null,{status:302,headers:approved.headers});
     }
@@ -54,7 +54,7 @@ export default {fetch(request,env,ctx) {
   const provider=new OAuthProvider({
     apiRoute:'/mcp',
     apiHandler:{fetch(request,env,ctx) {
-      if(ctx.props?.agentId!=='firetrace' || !ctx.auth?.scope?.includes('browser:control')) return new Response('Forbidden',{status:403});
+      if(ctx.props?.agentId!=='hardfire' || !ctx.auth?.scope?.includes('browser:control')) return new Response('Forbidden',{status:403});
       return handleMcp(request,env);
     }},defaultHandler,
     authorizeEndpoint:'/authorize',tokenEndpoint:'/oauth/token',clientRegistrationEndpoint:'/oauth/register',
