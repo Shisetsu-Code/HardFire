@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "HardFire",
         "shortDescription": "Control local de HardFire",
-        "longDescription": "Controla HardFire en tu PC mediante su MCP local en 127.0.0.1. No usa Firetrace ni un transporte remoto.",
+        "longDescription": "Controla HardFire en tu PC mediante su MCP local en 127.0.0.1 para navegación, capturas, HAR y tráfico WebSocket.",
         "developerName": "Shisetsu-Code",
         "category": "Developer Tools",
         "capabilities": [
