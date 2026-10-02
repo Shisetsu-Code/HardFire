@@ -13,6 +13,8 @@ class HardFireController {
     this.createTab = options.createTab;
     this.activateTab = options.activateTab;
     this.networkTap = options.networkTap;
+    this.startRecordingCallback = options.startRecording;
+    this.saveRecordingCallback = options.saveRecording;
     this.lastCapture = [];
   }
 
@@ -118,6 +120,56 @@ class HardFireController {
     return { events: this.lastCapture };
   }
 
+  async recordStart() {
+    const tab = this._tab();
+
+    if (typeof this.startRecordingCallback !== 'function') {
+      throw new Error('HAR recording control is unavailable');
+    }
+
+    const result =
+      await this.startRecordingCallback(tab);
+
+    if (!result?.ok) {
+      throw new Error(
+        result?.error ||
+        'Unable to start HAR recording'
+      );
+    }
+
+    return {
+      ...result,
+      tab_id: tab.id,
+      url:
+        this._wc(tab).getURL() ||
+        tab.url ||
+        'about:blank'
+    };
+  }
+
+  async recordSave() {
+    const tab = this._tab();
+
+    if (typeof this.saveRecordingCallback !== 'function') {
+      throw new Error('HAR save control is unavailable');
+    }
+
+    const result =
+      await this.saveRecordingCallback(tab);
+
+    if (!result?.ok) {
+      throw new Error(
+        result?.error ||
+        'Unable to save HAR recording'
+      );
+    }
+
+    return {
+      ...result,
+      tab_id: tab.id
+    };
+  }
+
   _captureFromEntry(entry) {
     return {
       url: entry.request?.url || '',
@@ -203,6 +255,8 @@ class HardFireController {
       else if (action === 'wait') data = await this.wait(args.ms ?? 500);
       else if (action === 'open') data = await this.open(args.url);
       else if (action === 'trigger_and_capture') data = await this.triggerAndCapture(args);
+      else if (action === 'record_start') data = await this.recordStart();
+      else if (action === 'record_save') data = await this.recordSave();
       else if (action === 'status') data = await this.status();
       else if (action === 'screenshot') {
         const bytes = await this.screenshot(args.quality ?? 70);
@@ -238,6 +292,8 @@ class HardFireController {
     }
     if (name === 'network_clear') return this.networkClear();
     if (name === 'network_events') return this.networkEvents();
+    if (name === 'record_start' || name === 'hardfire_record_start') return this.recordStart();
+    if (name === 'record_save' || name === 'hardfire_record_save') return this.recordSave();
     if (name === 'trigger_and_capture') return this.triggerAndCapture(args);
     if (name === 'sequence') return this.sequence(args.steps || []);
     throw new Error(`unknown action: ${action}`);
