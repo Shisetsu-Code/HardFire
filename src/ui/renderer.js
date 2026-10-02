@@ -50,7 +50,8 @@ function render() {
       tab.stats?.recording ? 'recording' : '',
       tab.loadState === 'loading' ? 'loading' : '',
       tab.loadState === 'failed' ? 'failed' : '',
-      tab.kind === 'import' ? 'import-tab' : ''
+      tab.kind === 'import' ? 'import-tab' : '',
+      tab.kind === 'mcp' ? 'mcp-tab' : ''
     ].filter(Boolean).join(' ');
 
     tabButton.dataset.id = String(tab.id);
@@ -60,7 +61,9 @@ function render() {
     title.textContent =
       tab.kind === 'import'
         ? 'IMPORT'
-        : (tab.title || tab.url || 'New Tab');
+        : tab.kind === 'mcp'
+          ? 'MCP'
+          : (tab.title || tab.url || 'New Tab');
 
     tabButton.append(title);
 
@@ -93,7 +96,9 @@ function render() {
   if (document.activeElement !== addressEl) {
     addressEl.value = isGame
       ? (tab.url === 'about:blank' ? '' : tab.url)
-      : 'targets.txt import queue';
+      : tab.kind === 'mcp'
+        ? 'HardFire local MCP'
+        : 'targets.txt import queue';
   }
 
   speedEl.value = String(tab.speed || 1);
@@ -122,6 +127,9 @@ function render() {
     } else if (recording) {
       setStatus('Recording…');
     }
+  } else if (tab.kind === 'mcp') {
+    statsEl.textContent = 'MCP';
+    setStatus('Local + Cloudflare control');
   } else {
     statsEl.textContent = 'IMPORT';
     setStatus('Target queue');
