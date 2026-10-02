@@ -27,7 +27,7 @@ async function createProtocolServer(controller) {
     import('zod')
   ]);
 
-  const server = new McpServer({ name: 'hardfire', version: '1.0.0' });
+  const server = new McpServer({ name: 'HardFire', version: '1.1.0' });
   const text = (value) => ({
     content: [{ type: 'text', text: JSON.stringify(value) }]
   });
@@ -53,28 +53,28 @@ async function createProtocolServer(controller) {
       }
     });
 
-  register('browser_status', 'Read HardFire browser state.', {}, true,
+  register('hardfire_status', 'Use HardFire only: read the active local HardFire browser tab, URL, title, viewport, recording state and WebSocket counters.', {}, true,
     async () => text(await controller.status()));
 
-  register('browser_open', 'Open an HTTP or HTTPS URL in the active HardFire tab.', {
+  register('hardfire_open', 'Use HardFire only: open an HTTP or HTTPS URL in the active local HardFire browser tab.', {
     url: z.string().url()
   }, false, async ({ url }) => text(await controller.open(url)));
 
-  register('browser_click', 'Click absolute viewport coordinates.', {
+  register('hardfire_click', 'Use HardFire only: click absolute pixel coordinates in the active local HardFire browser tab.', {
     x: z.number().min(0),
     y: z.number().min(0)
   }, false, async ({ x, y }) => text(await controller.click(x, y)));
 
-  register('browser_click_relative', 'Click normalized viewport coordinates from 0 to 1.', {
+  register('hardfire_click_relative', 'Use HardFire only: click normalized coordinates from 0 to 1 in the active local HardFire browser tab.', {
     rx: z.number().min(0).max(1),
     ry: z.number().min(0).max(1)
   }, false, async ({ rx, ry }) => text(await controller.clickRelative(rx, ry)));
 
-  register('browser_wait', 'Wait for the current page to settle.', {
+  register('hardfire_wait', 'Use HardFire only: wait for the active local HardFire tab to settle.', {
     ms: z.number().int().min(0).max(60000).default(1000)
   }, false, async ({ ms }) => text(await controller.wait(ms)));
 
-  register('browser_screenshot', 'Capture the active HardFire viewport as JPEG.', {
+  register('hardfire_screenshot', 'Use HardFire only: capture the active local HardFire viewport as a JPEG image.', {
     quality: z.number().int().min(20).max(90).default(65)
   }, true, async ({ quality }) => {
     const bytes = await controller.screenshot(quality);
@@ -87,13 +87,13 @@ async function createProtocolServer(controller) {
     };
   });
 
-  register('network_events', 'Read the most recent atomic network capture.', {}, true,
+  register('hardfire_network_events', 'Use HardFire only: read the most recent HTTP/WebSocket capture produced by HardFire.', {}, true,
     async () => text(controller.networkEvents()));
 
-  register('network_clear', 'Clear the most recent network capture.', {}, false,
+  register('hardfire_network_clear', 'Use HardFire only: clear HardFire\'s most recent network capture buffer.', {}, false,
     async () => text(controller.networkClear()));
 
-  register('trigger_and_capture', 'Click and capture matching HTTP/WebSocket request-response traffic.', {
+  register('hardfire_trigger_and_capture', 'Use HardFire only: perform one click and capture matching HTTP and WebSocket request/response traffic from the active HardFire tab.', {
     url_contains: z.string().max(2000).default('fn=play'),
     rx: z.number().min(0).max(1).optional(),
     ry: z.number().min(0).max(1).optional(),
@@ -102,7 +102,7 @@ async function createProtocolServer(controller) {
     wait_ms: z.number().int().min(0).max(30000).default(2500)
   }, false, async (args) => text(await controller.triggerAndCapture(args)));
 
-  register('sequence', 'Run a short sequence of HardFire browser actions.', {
+  register('hardfire_sequence', 'Use HardFire only: execute a short ordered sequence of navigation, click, wait, screenshot or capture operations in the active HardFire tab.', {
     steps: z.array(z.object({
       action: z.string(),
       args: z.record(z.string(), z.any()).optional()
