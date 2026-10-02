@@ -1,0 +1,25 @@
+name: Release HardFire v1.4.1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/release-v1.4.1.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm run check
+      - name: Build and publish v1.4.1
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
