@@ -27,7 +27,7 @@ async function createProtocolServer(controller) {
     import('zod')
   ]);
 
-  const server = new McpServer({ name: 'HardFire', version: '1.1.0' });
+  const server = new McpServer({ name: 'HardFire', version: '1.2.0' });
   const text = (value) => ({
     content: [{ type: 'text', text: JSON.stringify(value) }]
   });
