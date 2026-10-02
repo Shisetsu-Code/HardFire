@@ -10,7 +10,7 @@ async function refresh() {
   el('endpoint').textContent = local.endpoint || 'http://127.0.0.1:8765/mcp';
   el('localStatus').textContent = local.listening ? 'LISTENING' : (local.error || 'OFFLINE');
   el('remoteStatus').textContent = remote.connected ? 'CONNECTED' : (remote.enabled ? 'DISCONNECTED' : 'NOT CONFIGURED');
-  el('agent').textContent = remote.agentId || 'firetrace';
+  el('agent').textContent = remote.agentId || 'hardfire';
   el('remoteUrl').textContent = remote.baseUrl || '—';
 
   const config = {
