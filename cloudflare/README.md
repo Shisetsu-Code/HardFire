@@ -52,7 +52,10 @@ The existing control Worker, D1 database and R2 screenshot bucket are reused, bu
 - `hardfire_screenshot`
 - `hardfire_network_events`
 - `hardfire_network_clear`
+- `hardfire_record_start`
+- `hardfire_record_save`
 - `hardfire_trigger_and_capture`
+- `hardfire_sequence`
 - `hardfire_command_result`
 
 ## Development
