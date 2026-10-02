@@ -1,8 +1,48 @@
-<section class="card">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HardFire MCP</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>HardFire MCP</h1>
+      <p>Local MCP bridge for ChatGPT Desktop and GPT Worker.</p>
+
+      <div class="row">
+        <span>Local MCP</span>
+        <strong id="localStatus">Starting…</strong>
+      </div>
+
+      <div class="endpoint">
+        <code id="endpoint">http://127.0.0.1:8765/mcp</code>
+        <button id="copyUrl">COPY URL</button>
+      </div>
+
+      <h2>GPT Worker config</h2>
+      <pre id="config"></pre>
+      <button id="copyConfig">COPY CONFIG</button>
+
+      <p class="hint">
+        HardFire is local-only. No Cloudflare worker, remote agent, OAuth, or bearer token is required.
+      </p>
+    </section>
+
+    <section class="card">
       <h2>Available browser tools</h2>
-      <p class="tools">hardfire_status · hardfire_open · hardfire_click · hardfire_click_relative · hardfire_wait · hardfire_screenshot · hardfire_network_events · hardfire_network_clear · hardfire_record_start · hardfire_record_save · hardfire_trigger_and_capture · hardfire_sequence</p>
+      <p class="tools">
+        hardfire_status · hardfire_open · hardfire_click · hardfire_click_relative ·
+        hardfire_wait · hardfire_screenshot · hardfire_network_events ·
+        hardfire_network_clear · hardfire_record_start · hardfire_record_save ·
+        hardfire_trigger_and_capture · hardfire_sequence
+      </p>
     </section>
   </main>
+
   <script src="./renderer.js"></script>
 </body>
 </html>
