@@ -8,7 +8,7 @@ const { headersArrayToObject } = require('../src/redact');
 test('remote HardFire URL is converted to WSS', () => {
   assert.equal(
     wsUrl('https://control.example', 'hardfire'),
-    'wss://control.example/ws?agent_id=firetrace'
+    'wss://control.example/ws?agent_id=hardfire'
   );
 });
 
